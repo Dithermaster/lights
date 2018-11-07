@@ -1,0 +1,44 @@
+notes
+
+
+todo
+  handle interrupts in python
+  switch to select in python
+  make a function that allow blocking or nonblocking by the caller
+  make python with light following
+    color, position
+
+  
+
+
+
+https://gist.github.com/Xaekai/e1f711cb0ad865deafc11185641c632a
+**   server>  MODE=server node ipc.example.js
+**   client>  MODE=client node ipc.example.js
+
+
+https://gist.github.com/jmhobbs/11276249
+
+
+
+Python side is DATAGRAM
+  python nonblock-server.py
+  python client.py
+
+
+
+Either
+  switch node to datagram
+  or python to stream
+
+
+Use case
+  python starts up and makes the socket
+  node connects and runs it
+
+
+
+
+Node datagram
+  https://www.npmjs.com/package/unix-dgram
+

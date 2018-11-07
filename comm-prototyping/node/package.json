@@ -1,0 +1,29 @@
+{
+  "name": "sisbot-server",
+  "version": "1.0.0",
+  "description": "Sisyphus sand plotter control server",
+  "main": "src/pipe-test.js",
+  "dependencies": {
+    "named-pipe": "^1.0.0",
+    "unix-dgram": "^2.0.2"
+  },
+  "repository": {
+    "type": "git",
+    "url": "github.com/builtbybig/sisbot-server"
+  },
+  "keywords": [
+    "sisyphus",
+    "sisbot",
+    "bruce shapiro",
+    "art",
+    "robot",
+    "control",
+    "server",
+    "sand",
+    "sand-plotter",
+    "zen",
+    "zen garden",
+    "installation"
+  ],
+  "license": "ISC"
+}
