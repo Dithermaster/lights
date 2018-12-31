@@ -16,6 +16,8 @@ sudo python examples/strandtest.py
 
 If that works, start up the python program to listen on datagram socket for ball positions.
 
+cp ~/lights/comm-prototyping/python/exmaples/baller.py examples
+
 (you will need to modify the code for the number of leds in your strip)
 (line 20 in baller.py  LED_COUNT      = 44      # Number of LED pixels. )
 sudo python examples/baller.py
@@ -28,5 +30,10 @@ cp ~/lights/sisbot/* .
 cd ../sisproxy
 sudo rm /var/log/sisyphus/*
 sudo ./restart.sh &
+
+
+After the table gets running you should see ball positions priting out from the python program, and the lights changing position and color as Theta and Rho change.
+
+
 
 
