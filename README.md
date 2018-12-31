@@ -1,5 +1,7 @@
 # lights
 
+Engineering prototype for streaming ball positions (rho, theta) from sisbot plotter across a unix domain datagram socket to a python light contolling program.   The python program needs to use the DMA on the PI, one of the items below show the steps to reconfigure the PI to support use of DMA.  The python is built on https://github.com/jgarff/rpi_ws281x
+
 
 ## setup the lights programs
 
