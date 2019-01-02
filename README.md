@@ -8,7 +8,7 @@ Engineering prototype for streaming ball positions (rho, theta) from sisbot plot
 * cd /home/pi
 * git clone git@github.com:joelxxx/lights.git
 * Follow directions in  ~/lights/sisbot/system/install_python_strip.sh
-* Plug in the lights as shown in the photo
+* Plug in the lights as shown in the photo  hookup_photo.jpg
 * test the default lights program 
 * cd /home/pi/rpi_ws281x/python
 * sudo python examples/strandtest.py
