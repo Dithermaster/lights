@@ -15,12 +15,13 @@ Engineering prototype for streaming ball positions (rho, theta) from sisbot plot
 
 ### If that works, start up the python program to listen on datagram socket for ball positions.
 
+* cd /home/pi/rpi_ws281x/python
 * cp ~/lights/comm-prototyping/python/exmaples/baller.py examples
 * modify line 20 in baller.py  LED_COUNT      = 44 for your #leds
 * sudo python examples/baller.py
 
 
-## Setup the sisbot to send position information over the dgram socket
+## Setup & restart sisbot to send position information over the dgram socket
 * cd /home/pi/sisbot-server/sisbot
 * cp ~/lights/sisbot/* .
 * cd ../sisproxy
