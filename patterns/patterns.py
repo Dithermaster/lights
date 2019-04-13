@@ -1,7 +1,7 @@
 #!/usr/bin/env python3
 # RGBW light patterns by Dennis Adams (dithermaster@gmail) for Sisyphus tables
 
-import time
+from datetime import datetime
 import math
 from neopixel import *
 
@@ -18,7 +18,7 @@ SK6812_STRIP_GRBW = 0x18081000  # Adafruit RGBW strip
 
 TWO_PI = math.pi * 2.0
 
-def rainbow(led_theta):
+def static_rainbow(led_theta, day_ms):
     pos = int(256 * led_theta / TWO_PI)
     if pos < 85:
         return Color(pos * 3, 255 - pos * 3, 0)
@@ -29,23 +29,42 @@ def rainbow(led_theta):
         pos -= 170
         return Color(0, pos * 3, 255 - pos * 3)
 
-def call_pattern(pattern, led_theta):
-    switcher = {
-        1: rainbow
-    }
-    func = switcher.get(pattern, lambda: Color(0, 0, 0))
-    return func(led_theta)
+def turning_rainbow(led_theta, day_ms):
+    theta = led_theta + day_ms * TWO_PI / 1000
+    pos = int(256 * theta / TWO_PI)
+    if pos < 85:
+        return Color(pos * 3, 255 - pos * 3, 0)
+    elif pos < 170:
+        pos -= 85
+        return Color(255 - pos * 3, 0, pos * 3)
+    else:
+        pos -= 170
+        return Color(0, pos * 3, 255 - pos * 3)
 
 # sisbot simulator - replace with code that gets ball location from sisbot (I could not get that working, so I'm simulating it)
 def sisbotSimulator():
-    pattern = 1
+    pattern = 2
     #ball_rho = 0.0
     #ball_theta = 0.0
-    #timeofday = 0
+    #speed
+    #rotation
     #brightness = 1.0
+
+    dt = datetime.now()
+    day_ms = ((dt.hour * 60 + dt.minute) * 60 + dt.second) + dt.microsecond / 1000
+
+    # get the pattern function
+    switcher = {
+        1: static_rainbow,
+        2: turning_rainbow
+    }
+    func = switcher.get(pattern, lambda: Color(0, 0, 0))
+
+    # set LED colors based on pattern function
     for i in range(strip.numPixels()):
         led_theta = TWO_PI * i / strip.numPixels()
-        strip.setPixelColor(i, call_pattern(pattern, led_theta))
+        strip.setPixelColor(i, func(led_theta, day_ms))
+    # send to strip
     strip.show()
 
 # Main program logic follows:
