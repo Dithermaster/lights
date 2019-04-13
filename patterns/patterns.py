@@ -42,18 +42,22 @@ def rainbowCycle(strip, wait_ms=20, iterations=5):
         strip.show()
         time.sleep(wait_ms/1000.0)
 
+# sisbot simulator - replace with code that gets ball location from sisbot (I could not get that working, so I'm simulating it)
+def sisbotSimulator():
+    rho = 0.0
+    theta = 0.0
+    timeofday = 0
+    rainbowCycle(strip)
+
 # Main program logic follows:
 if __name__ == '__main__':
     # Create NeoPixel object with configuration match 2' Sisyphus table (larger tables will need larger LED count)
     strip = Adafruit_NeoPixel(LED_COUNT, LED_PIN, LED_FREQ_HZ, LED_DMA, LED_INVERT, LED_BRIGHTNESS, LED_CHANNEL, SK6812_STRIP_GRBW)
-    # Intialize the library (must be called once before other functions).
     strip.begin()
 
     try:
-
-        #while True:
-            print ('Rainbow animations.')
-            rainbowCycle(strip)
+        while True:
+            sisbotSimulator()
 
     except KeyboardInterrupt:
         colorWipe(strip, Color(0,0,0), 10)
