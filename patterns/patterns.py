@@ -19,7 +19,7 @@ SK6812_STRIP_GRBW = 0x18081000  # Adafruit RGBW strip
 TWO_PI = math.pi * 2.0
 
 def static_rainbow(led_theta, day_ms):
-    pos = int(256 * led_theta / TWO_PI)
+    pos = int(256 * led_theta / TWO_PI) & 255
     if pos < 85:
         return Color(pos * 3, 255 - pos * 3, 0)
     elif pos < 170:
@@ -31,7 +31,7 @@ def static_rainbow(led_theta, day_ms):
 
 def turning_rainbow(led_theta, day_ms):
     theta = led_theta + day_ms * TWO_PI / 1000
-    pos = int(256 * theta / TWO_PI)
+    pos = int(256 * theta / TWO_PI) & 255
     if pos < 85:
         return Color(pos * 3, 255 - pos * 3, 0)
     elif pos < 170:
