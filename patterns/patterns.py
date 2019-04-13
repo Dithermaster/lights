@@ -2,6 +2,7 @@
 # RGBW light patterns by Dennis Adams (dithermaster@gmail) for Sisyphus tables
 
 import time
+import math
 from neopixel import *
 
 # LED strip configuration:
@@ -33,7 +34,7 @@ def call_pattern(pattern, led_theta):
         1: rainbow
     }
     func = switcher.get(pattern, lambda: Color(0, 0, 0))
-    return func()
+    return func(led_theta)
 
 # sisbot simulator - replace with code that gets ball location from sisbot (I could not get that working, so I'm simulating it)
 def sisbotSimulator():
@@ -60,5 +61,5 @@ if __name__ == '__main__':
     except KeyboardInterrupt:
         # turn off LEDs on exit
         for i in range(strip.numPixels()):
-            strip.setPixelColor(i, color)
+            strip.setPixelColor(i, Color(0,0,0))
         strip.show()
