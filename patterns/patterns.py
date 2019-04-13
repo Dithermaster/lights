@@ -15,16 +15,10 @@ LED_INVERT     = False   # True to invert the signal (when using NPN transistor 
 LED_CHANNEL    = 0       # set to '1' for GPIOs 13, 19, 41, 45 or 53
 SK6812_STRIP_GRBW = 0x18081000  # Adafruit RGBW strip
 
-# Define functions which animate LEDs in various ways.
-def colorWipe(strip, color, wait_ms=50):
-    """Wipe color across display a pixel at a time."""
-    for i in range(strip.numPixels()):
-        strip.setPixelColor(i, color)
-        strip.show()
-        time.sleep(wait_ms/1000.0)
+TWO_PI = math.pi * 2.0
 
-def wheel(pos):
-    """Generate rainbow colors across 0-255 positions."""
+def rainbow(led_theta):
+    pos = int(256 * led_theta / TWO_PI)
     if pos < 85:
         return Color(pos * 3, 255 - pos * 3, 0)
     elif pos < 170:
@@ -34,20 +28,24 @@ def wheel(pos):
         pos -= 170
         return Color(0, pos * 3, 255 - pos * 3)
 
-def rainbowCycle(strip, wait_ms=20, iterations=5):
-    """Draw rainbow that uniformly distributes itself across all pixels."""
-    for j in range(1):
-        for i in range(strip.numPixels()):
-            strip.setPixelColor(i, wheel((int(i * 256 / strip.numPixels()) + j) & 255))
-        strip.show()
-        time.sleep(wait_ms/1000.0)
+def call_pattern(pattern, led_theta):
+    switcher = {
+        1: rainbow
+    }
+    func = switcher.get(pattern, lambda: Color(0, 0, 0))
+    return func()
 
 # sisbot simulator - replace with code that gets ball location from sisbot (I could not get that working, so I'm simulating it)
 def sisbotSimulator():
-    rho = 0.0
-    theta = 0.0
-    timeofday = 0
-    rainbowCycle(strip)
+    pattern = 1
+    #ball_rho = 0.0
+    #ball_theta = 0.0
+    #timeofday = 0
+    #brightness = 1.0
+    for i in range(strip.numPixels()):
+        led_theta = TWO_PI * i / strip.numPixels()
+        strip.setPixelColor(i, call_pattern(pattern, led_theta))
+    strip.show()
 
 # Main program logic follows:
 if __name__ == '__main__':
@@ -60,4 +58,7 @@ if __name__ == '__main__':
             sisbotSimulator()
 
     except KeyboardInterrupt:
-        colorWipe(strip, Color(0,0,0), 10)
+        # turn off LEDs on exit
+        for i in range(strip.numPixels()):
+            strip.setPixelColor(i, color)
+        strip.show()
