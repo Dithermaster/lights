@@ -19,7 +19,7 @@ SK6812_STRIP_GRBW = 0x18081000  # Adafruit RGBW strip
 
 TWO_PI = math.pi * 2.0
 
-def rainbow(led_theta, day_ms, rotation):
+def rainbow_sat(led_theta, day_ms, rotation):
     theta = led_theta + rotation
     pos = int(256 * theta / TWO_PI) & 255
     if pos < 85:
@@ -31,17 +31,20 @@ def rainbow(led_theta, day_ms, rotation):
         pos -= 170
         return Color(0, pos * 3, 255 - pos * 3)
 
-def rainbow2(led_theta, day_ms, rotation):
+def rainbow_pastel(led_theta, day_ms, rotation):
     theta = led_theta + rotation
-    r = (sin(theta) + 1.0) / 2.0
-    return Color(r, r, r)
+    offset = TWO_PI / 3.0
+    r = int(round((math.sin(theta) + 1.0) / 2.0 * 255.0))
+    g = int(round((math.sin(theta+offset) + 1.0) / 2.0 * 255.0))
+    b = int(round((math.sin(theta+2*offset) + 1.0) / 2.0 * 255.0))
+    return Color(r, g, b)
 
 # sisbot simulator - replace with code that gets ball location from sisbot (I could not get that working, so I'm simulating it)
 def sisbotSimulator():
     pattern = 2
     #ball_rho = 0.0
     #ball_theta = 0.0
-    speed = 1 # 0=stopped, 1=slow (1 minute per rotation), 60=fast (1 second per rotation)
+    speed = 6 # 0=stopped, 1=slow (1 minute per rotation), 60=fast (1 second per rotation)
     dt = datetime.now()
     day_ms = ((dt.hour * 60 + dt.minute) * 60 + dt.second) * 1000 + dt.microsecond / 1000
     rotation = TWO_PI * day_ms * speed / 60000
@@ -49,8 +52,8 @@ def sisbotSimulator():
 
     # get the pattern function
     switcher = {
-        1: rainbow,
-        2: rainbow2
+        1: rainbow_sat,
+        2: rainbow_pastel
     }
     func = switcher.get(pattern, lambda: Color(0, 0, 0))
 
@@ -61,7 +64,7 @@ def sisbotSimulator():
     # send to strip
     strip.show()
     # limit update speed (no faster than this, but likely slower due to math and strip update)
-    #time.sleep(1.0/60)
+    time.sleep(1.0/60)
 
 
 # Main program logic follows:
