@@ -20,11 +20,8 @@ SK6812_STRIP_GRBW = 0x18081000  # Adafruit RGBW strip
 TWO_PI = math.pi * 2.0
 
 def RGBW(r, g, b):
-    w = math.min(r, g, b)
-    r -= w
-    g -= w
-    b -= w
-    return Color(r, g, b, w)
+    w = min(r, g, b)
+    return Color(r-w, g-w, b-w, w)
 
 def rainbow_sat(led_theta, day_ms, rotation):
     theta = led_theta + rotation
