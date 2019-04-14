@@ -75,7 +75,7 @@ def sisbotSimulator():
     pattern = 1
     dt = datetime.now()
     day_ms = ((dt.hour * 60 + dt.minute) * 60 + dt.second) * 1000 + dt.microsecond / 1000
-    speed = 5 # 0=stopped, 1=slow (1 minute per rotation), 60=fast (1 second per rotation)
+    speed = 15 # 0=stopped, 1=slow (1 minute per rotation), 60=fast (1 second per rotation)
     rotation = TWO_PI * day_ms * speed / 60000
     # move ball in rho
     #ball_rho = (math.sin(TWO_PI * day_ms * 2 / 60000) + 1.0) / 2.0
