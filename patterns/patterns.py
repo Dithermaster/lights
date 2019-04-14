@@ -27,7 +27,7 @@ def Perceptual_to_RGBW(r, g, b):
     # squares perceptual value to make it linear, converts to 0-255 integer
     return RGBW(int(round(r*r*255.0)), int(round(g*g*255.0)), int(round(b*b*255.0)))
 
-def rainbow_sat(led_theta, day_ms, rotation):
+def rainbow_sat(led_theta, ball_rho, ball_theta, day_ms, rotation):
     theta = led_theta + rotation
     pos = int(256 * theta / TWO_PI) & 255
     if pos < 85:
@@ -39,7 +39,7 @@ def rainbow_sat(led_theta, day_ms, rotation):
         pos -= 170
         return RGBW(0, pos * 3, 255 - pos * 3)
 
-def rainbow_pastel(led_theta, day_ms, rotation):
+def rainbow_pastel(led_theta, ball_rho, ball_theta, day_ms, rotation):
     theta = led_theta + rotation
     offset = TWO_PI / 3.0
     r = int(round((math.sin(theta) + 1.0) / 2.0 * 255.0))
@@ -47,7 +47,7 @@ def rainbow_pastel(led_theta, day_ms, rotation):
     b = int(round((math.sin(theta+2*offset) + 1.0) / 2.0 * 255.0))
     return RGBW(r, g, b)
 
-def color_waves(led_theta, day_ms, rotation):
+def color_waves(led_theta, ball_rho, ball_theta, day_ms, rotation):
     movement = TWO_PI * day_ms / 60000
     theta = led_theta + rotation + movement
     r = (math.sin(theta * 1559 / 1000) + 1.0) / 2.0
@@ -55,11 +55,21 @@ def color_waves(led_theta, day_ms, rotation):
     b = (math.sin(theta * 2161 / 1000) + 1.0) / 2.0
     return Perceptual_to_RGBW(r, g, b)
 
+def ball_spotlight(led_theta, ball_rho, ball_theta, day_ms, rotation):
+    angle_diff = led-theta - ball_theta
+    if (angle_diff) < 0.0
+        angle_diff = -angle_diff
+    angle_diff = angle_diff - floor(angle_diff / TWO_PI) * TWO_PI
+    w = 0
+    if ((angle_diff - TWO_PI/50) < (1.0-ball_rho) * (TWO_PI / 2.0)
+        w = max(ball_rho, 0.3)
+    return Perceptual_to_RGBW(w, w, w)
+
 # sisbot simulator - replace with code that gets ball location from sisbot (I could not get that working, so I'm simulating it)
 def sisbotSimulator():
     pattern = 3
-    #ball_rho = 0.0
-    #ball_theta = 0.0
+    ball_rho = 1.0
+    ball_theta = TWO_PI * day_ms * 6 / 60000
     speed = 5 # 0=stopped, 1=slow (1 minute per rotation), 60=fast (1 second per rotation)
     dt = datetime.now()
     day_ms = ((dt.hour * 60 + dt.minute) * 60 + dt.second) * 1000 + dt.microsecond / 1000
@@ -77,7 +87,7 @@ def sisbotSimulator():
     # set LED colors based on pattern function
     for i in range(strip.numPixels()):
         led_theta = TWO_PI * i / strip.numPixels()
-        strip.setPixelColor(i, func(led_theta, day_ms, rotation))
+        strip.setPixelColor(i, func(led_theta, ball_rho, ball_theta, day_ms, rotation))
     # send to strip
     strip.show()
     # limit update speed (no faster than this, but likely slower due to math and strip update)
