@@ -79,14 +79,16 @@ def ball_spotlight(led_theta, ball_rho, ball_theta, day_ms, rotation, speed, use
 
 # sisbot simulator - replace with code that gets ball location from sisbot (I could not get that working, so I'm simulating it)
 def sisbotSimulator():
-    pattern = 3 # this would be set by the user (they would have a set of patterns to pick from)
+    # user parameters
+    pattern = 3 # this would be set by the user (they would have a set of named patterns to pick from)
     speed = 1 # this would be set by the users and sets rotation speed of patterns (0=stopped, 1=slow; 1 minute per rotation, 60=fast; 1 second per rotation
     brightness = 1.0 # this would be set by user (currently not implemented)
-    user_r = 255 # user chosen color, passed to patterns; typically used with blend to mix in final output
+    user_r = 255 # user chosen int RGB color, passed to patterns; typically used with blend to mix in final output
     user_g = 0
     user_b = 0
-    blend = 0.5
+    blend = 0.0 # blend amount, 0.0 (pattern only) to 1.0 (full solid color)
 
+    # calculated parmeters
     dt = datetime.now()
     day_ms = ((dt.hour * 60 + dt.minute) * 60 + dt.second) * 1000 + dt.microsecond / 1000
     rotation = TWO_PI * day_ms * speed / 60000
@@ -110,6 +112,7 @@ def sisbotSimulator():
     for i in range(strip.numPixels()):
         led_theta = TWO_PI * i / strip.numPixels()
         strip.setPixelColor(i, func(led_theta, ball_rho, ball_theta, day_ms, rotation, speed, user_r, user_g, user_b, blend))
+
     # send to strip
     strip.show()
     # limit update speed (no faster than this, but likely slower due to math and strip update)
