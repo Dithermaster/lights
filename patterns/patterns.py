@@ -25,7 +25,7 @@ def RGBW(r, g, b):
 
 def Perceptual_to_RGBW(r, g, b):
     # squares perceptual value to make it linear, converts to 0-255 integer
-    return RGBW(int(round(r*r*255.0)), int(round(g*g(255.0)), int(round(b*b*255.0)))
+    return RGBW(int(round(r*r*255.0)), int(round(g*g*255.0)), int(round(b*b*255.0)))
 
 def rainbow_sat(led_theta, day_ms, rotation):
     theta = led_theta + rotation
