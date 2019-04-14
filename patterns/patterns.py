@@ -44,7 +44,8 @@ def rainbow_pastel(led_theta, day_ms, rotation):
     return RGBW(r, g, b)
 
 def color_waves(led_theta, day_ms, rotation):
-    theta = led_theta + rotation
+    movement = TWO_PI * day_ms / 60000
+    theta = led_theta + rotation + movement
     r = int(round((math.sin(theta * 1559 / 1000) + 1.0) / 2.0 * 255.0))
     g = int(round((math.sin(theta * 1193 / 1000) + 1.0) / 2.0 * 255.0))
     b = int(round((math.sin(theta * 2161 / 1000) + 1.0) / 2.0 * 255.0))
@@ -55,7 +56,7 @@ def sisbotSimulator():
     pattern = 3
     #ball_rho = 0.0
     #ball_theta = 0.0
-    speed = 6 # 0=stopped, 1=slow (1 minute per rotation), 60=fast (1 second per rotation)
+    speed = 0 # 0=stopped, 1=slow (1 minute per rotation), 60=fast (1 second per rotation)
     dt = datetime.now()
     day_ms = ((dt.hour * 60 + dt.minute) * 60 + dt.second) * 1000 + dt.microsecond / 1000
     rotation = TWO_PI * day_ms * speed / 60000
