@@ -17,6 +17,7 @@ LED_INVERT     = False   # True to invert the signal (when using NPN transistor 
 LED_CHANNEL    = 0       # set to '1' for GPIOs 13, 19, 41, 45 or 53
 SK6812_STRIP_GRBW = 0x18081000  # Adafruit RGBW strip
 
+PI = math.pi
 TWO_PI = math.pi * 2.0
 
 def RGBW(r, g, b):
@@ -65,7 +66,7 @@ def min_angle(angle1, angle2):
 
 def ball_spotlight(led_theta, ball_rho, ball_theta, day_ms, rotation):
     angle_diff = min_angle(ball_theta, led_theta)
-    w = max(min(10*((1.0-ball_rho) * (TWO_PI / 2.0) - (angle_diff - TWO_PI/50)), max(ball_rho,0.3)), 0.0)
+    w = max(min(10*((1.0-ball_rho) * PI - (angle_diff - TWO_PI/50)), max(ball_rho,0.3)), 0.0)
     return Perceptual_to_RGBW(w, w, w)
 
 # sisbot simulator - replace with code that gets ball location from sisbot (I could not get that working, so I'm simulating it)
