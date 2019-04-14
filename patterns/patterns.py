@@ -55,10 +55,16 @@ def color_waves(led_theta, ball_rho, ball_theta, day_ms, rotation):
     b = (math.sin(theta * 2161 / 1000) + 1.0) / 2.0
     return Perceptual_to_RGBW(r, g, b)
 
+def min_angle(angle1, angle2):
+    angle1 = angle1 - math.floor(angle1 / TWO_PI) * TWO_PI # make 0 .. TWO_PI
+    angle2 = angle2 - math.floor(angle2 / TWO_PI) * TWO_PI # make 0 .. TWO_PI
+    angle_diff = abs(angle2 - angle1)
+    if (angle_diff > PI)
+        angle_diff -= TWO_PI
+    return abs(angle_diff)
+
 def ball_spotlight(led_theta, ball_rho, ball_theta, day_ms, rotation):
-    led_theta = led_theta - math.floor(led_theta / TWO_PI) * TWO_PI # make 0 .. TWO_PI
-    ball_theta = ball_theta - math.floor(ball_theta / TWO_PI) * TWO_PI # make 0 .. TWO_PI
-    angle_diff = abs(ball_theta - led_theta)
+    angle_diff = min_angle(ball_theta, led_theta)
     w = max(min(10*((1.0-ball_rho) * (TWO_PI / 2.0) - (angle_diff - TWO_PI/50)), max(ball_rho,0.3)), 0.0)
     return Perceptual_to_RGBW(w, w, w)
 
