@@ -49,7 +49,7 @@ def sisbotSimulator():
     #ball_theta = 0.0
     speed = 1 # 1=slow (1 minute per rotation), 60=fast (1 second per rotation)
     dt = datetime.now()
-    day_ms = ((dt.hour * 60 + dt.minute) * 60 + dt.second) + dt.microsecond / 1000
+    day_ms = ((dt.hour * 60 + dt.minute) * 60 + dt.second) * 1000 + dt.microsecond / 1000
     rotation = TWO_PI * day_ms * speed / 60000
     #brightness = 1.0
 
