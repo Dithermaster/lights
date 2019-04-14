@@ -19,17 +19,24 @@ SK6812_STRIP_GRBW = 0x18081000  # Adafruit RGBW strip
 
 TWO_PI = math.pi * 2.0
 
+def RGBW(r, g, b):
+    w = math.min(r, g, b)
+    r -= w
+    g -= w
+    b -= w
+    return Color(r, g, b, w)
+
 def rainbow_sat(led_theta, day_ms, rotation):
     theta = led_theta + rotation
     pos = int(256 * theta / TWO_PI) & 255
     if pos < 85:
-        return Color(pos * 3, 255 - pos * 3, 0)
+        return RGBW(pos * 3, 255 - pos * 3, 0)
     elif pos < 170:
         pos -= 85
-        return Color(255 - pos * 3, 0, pos * 3)
+        return RGBW(255 - pos * 3, 0, pos * 3)
     else:
         pos -= 170
-        return Color(0, pos * 3, 255 - pos * 3)
+        return RGBW(0, pos * 3, 255 - pos * 3)
 
 def rainbow_pastel(led_theta, day_ms, rotation):
     theta = led_theta + rotation
@@ -37,7 +44,7 @@ def rainbow_pastel(led_theta, day_ms, rotation):
     r = int(round((math.sin(theta) + 1.0) / 2.0 * 255.0))
     g = int(round((math.sin(theta+offset) + 1.0) / 2.0 * 255.0))
     b = int(round((math.sin(theta+2*offset) + 1.0) / 2.0 * 255.0))
-    return Color(r, g, b)
+    return RGBW(r, g, b)
 
 # sisbot simulator - replace with code that gets ball location from sisbot (I could not get that working, so I'm simulating it)
 def sisbotSimulator():
@@ -55,7 +62,7 @@ def sisbotSimulator():
         1: rainbow_sat,
         2: rainbow_pastel
     }
-    func = switcher.get(pattern, lambda: Color(0, 0, 0))
+    func = switcher.get(pattern, lambda: RGBW(0, 0, 0))
 
     # set LED colors based on pattern function
     for i in range(strip.numPixels()):
@@ -80,5 +87,5 @@ if __name__ == '__main__':
     except KeyboardInterrupt:
         # turn off LEDs on exit
         for i in range(strip.numPixels()):
-            strip.setPixelColor(i, Color(0,0,0))
+            strip.setPixelColor(i, RGBW(0,0,0))
         strip.show()
