@@ -23,7 +23,7 @@ def RGBW(r, g, b):
     w = min(r, g, b)
     return Color(r-w, g-w, b-w, w)
 
-def Perceptual_to_RGBW(r, g, b)
+def Perceptual_to_RGBW(r, g, b):
     # squares perceptual value to make it linear, converts to 0-255 integer
     return RGBW(int(round(r*r*255.0)), int(round(g*g(255.0)), int(round(b*b*255.0)))
 
