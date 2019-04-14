@@ -60,7 +60,7 @@ def min_angle(angle1, angle2):
     angle1 = angle1 - math.floor(angle1 / TWO_PI) * TWO_PI # make 0 .. TWO_PI
     angle2 = angle2 - math.floor(angle2 / TWO_PI) * TWO_PI # make 0 .. TWO_PI
     angle_diff = abs(angle2 - angle1)
-    if (angle_diff > PI)
+    if (angle_diff > PI):
         angle_diff -= TWO_PI
     return abs(angle_diff)
 
