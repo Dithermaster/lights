@@ -61,7 +61,7 @@ def ball_spotlight(led_theta, ball_rho, ball_theta, day_ms, rotation):
         angle_diff = -angle_diff
     angle_diff = angle_diff - math.floor(angle_diff / TWO_PI) * TWO_PI
     w = 0
-    if ((angle_diff - TWO_PI/50) < (1.0-ball_rho) * (TWO_PI / 2.0)):
+    if ((angle_diff - TWO_PI/25) < (1.0-ball_rho) * (TWO_PI / 2.0)):
         bright = min(10.0*((1.0-ball_rho) * (TWO_PI / 2.0) - (angle_diff - TWO_PI/25)),1.0)
         w = max(bright, 0.3)
     return Perceptual_to_RGBW(w, w, w)
