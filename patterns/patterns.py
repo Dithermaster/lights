@@ -1,8 +1,9 @@
 #!/usr/bin/env python3
 # RGBW light patterns by Dennis Adams (dithermaster@gmail) for Sisyphus tables
 
-from datetime import datetime
 import math
+import time
+from datetime import datetime
 from neopixel import *
 
 # LED strip configuration:
@@ -18,8 +19,8 @@ SK6812_STRIP_GRBW = 0x18081000  # Adafruit RGBW strip
 
 TWO_PI = math.pi * 2.0
 
-def static_rainbow(led_theta, day_ms):
-    pos = int(256 * led_theta / TWO_PI) & 255
+def static_rainbow(led_theta, day_ms, rotation):
+    pos = int(256 * led_theta / TWO_PI)
     if pos < 85:
         return Color(pos * 3, 255 - pos * 3, 0)
     elif pos < 170:
@@ -29,8 +30,8 @@ def static_rainbow(led_theta, day_ms):
         pos -= 170
         return Color(0, pos * 3, 255 - pos * 3)
 
-def turning_rainbow(led_theta, day_ms):
-    theta = led_theta + day_ms * TWO_PI / 1000
+def turning_rainbow(led_theta, day_ms, rotation):
+    theta = led_theta + rotation
     pos = int(256 * theta / TWO_PI) & 255
     if pos < 85:
         return Color(pos * 3, 255 - pos * 3, 0)
@@ -46,12 +47,11 @@ def sisbotSimulator():
     pattern = 2
     #ball_rho = 0.0
     #ball_theta = 0.0
-    #speed
-    #rotation
-    #brightness = 1.0
-
+    speed = 1 # 1=slow (1 minute per rotation), 60=fast (1 second per rotation)
     dt = datetime.now()
     day_ms = ((dt.hour * 60 + dt.minute) * 60 + dt.second) + dt.microsecond / 1000
+    rotation = TWO_PI * day_ms * speed / 60000
+    #brightness = 1.0
 
     # get the pattern function
     switcher = {
@@ -63,9 +63,12 @@ def sisbotSimulator():
     # set LED colors based on pattern function
     for i in range(strip.numPixels()):
         led_theta = TWO_PI * i / strip.numPixels()
-        strip.setPixelColor(i, func(led_theta, day_ms))
+        strip.setPixelColor(i, func(led_theta, day_ms, rotation))
     # send to strip
     strip.show()
+    # limit update speed (no faster than this, but likely slower due to math and strip update)
+    #time.sleep(1.0/60)
+
 
 # Main program logic follows:
 if __name__ == '__main__':
