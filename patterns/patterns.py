@@ -66,7 +66,8 @@ def min_angle(angle1, angle2):
 
 def ball_spotlight(led_theta, ball_rho, ball_theta, day_ms, rotation):
     angle_diff = min_angle(ball_theta, led_theta)
-    w = max(min(10*((1.0-ball_rho) * PI - (angle_diff - TWO_PI/50)), max(ball_rho,0.3)), 0.0)
+    ball_rho_adjusted = math.sqrt(ball_rho) # keep narrow more than wide
+    w = max(min(10*((1.0-ball_rho_adjusted) * PI - (angle_diff - TWO_PI/50)), max(ball_rho,0.3)), 0.0)
     return Perceptual_to_RGBW(w, w, w)
 
 # sisbot simulator - replace with code that gets ball location from sisbot (I could not get that working, so I'm simulating it)
@@ -77,11 +78,11 @@ def sisbotSimulator():
     speed = 5 # 0=stopped, 1=slow (1 minute per rotation), 60=fast (1 second per rotation)
     rotation = TWO_PI * day_ms * speed / 60000
     # move ball in rho
-    #ball_rho = (math.sin(TWO_PI * day_ms * 2 / 60000) + 1.0) / 2.0
-    #ball_theta = 0.0
+    ball_rho = (math.sin(TWO_PI * day_ms * 2 / 60000) + 1.0) / 2.0
+    ball_theta = 0.0
     # move ball in theta
-    ball_rho = 1.0
-    ball_theta = TWO_PI * day_ms * 2 / 60000
+    #ball_rho = 1.0
+    #ball_theta = TWO_PI * day_ms * 2 / 60000
     #brightness = 1.0
 
     # get the pattern function
