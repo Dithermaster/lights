@@ -22,13 +22,16 @@ TWO_PI = math.pi * 2.0
 
 # utility functions
 
-def RGBW(r, g, b):
+def RGBW(r, g, b, user_r, user_g, user_b, blend):
+    r = blend * user_r + (1.0 - blend) * r
+    g = blend * user_g + (1.0 - blend) * g
+    b = blend * user_b + (1.0 - blend) * b
     w = min(r, g, b)
     return Color(r-w, g-w, b-w, w)
 
-def Perceptual_to_RGBW(r, g, b):
+def Perceptual_to_RGBW(r, g, b, user_r, user_g, user_b, blend):
     # squares perceptual value to make it linear, converts to 0-255 integer
-    return RGBW(int(round(r*r*255.0)), int(round(g*g*255.0)), int(round(b*b*255.0)))
+    return RGBW(int(round(r*r*255.0)), int(round(g*g*255.0)), int(round(b*b*255.0)), user_r, user_g, user_b, blend)
 
 def min_angle(angle1, angle2):
     angle1 = angle1 - math.floor(angle1 / TWO_PI) * TWO_PI # make 0 .. TWO_PI
@@ -40,46 +43,52 @@ def min_angle(angle1, angle2):
 
 # patterns below
 
-def rainbow_sat(led_theta, ball_rho, ball_theta, day_ms, rotation):
+def rainbow_sat(led_theta, ball_rho, ball_theta, day_ms, rotation, speed, user_r, user_g, user_b, blend):
     theta = led_theta + rotation
     pos = int(256 * theta / TWO_PI) & 255
     if pos < 85:
-        return RGBW(pos * 3, 255 - pos * 3, 0)
+        return RGBW(pos * 3, 255 - pos * 3, 0, user_r, user_g, user_b, blend)
     elif pos < 170:
         pos -= 85
-        return RGBW(255 - pos * 3, 0, pos * 3)
+        return RGBW(255 - pos * 3, 0, pos * 3, user_r, user_g, user_b, blend)
     else:
         pos -= 170
-        return RGBW(0, pos * 3, 255 - pos * 3)
+        return RGBW(0, pos * 3, 255 - pos * 3, user_r, user_g, user_b, blend)
 
-def rainbow_pastel(led_theta, ball_rho, ball_theta, day_ms, rotation):
+def rainbow_pastel(led_theta, ball_rho, ball_theta, day_ms, rotation, speed, user_r, user_g, user_b, blend):
     theta = led_theta + rotation
     offset = TWO_PI / 3.0
     r = int(round((math.sin(theta) + 1.0) / 2.0 * 255.0))
     g = int(round((math.sin(theta+offset) + 1.0) / 2.0 * 255.0))
     b = int(round((math.sin(theta+2*offset) + 1.0) / 2.0 * 255.0))
-    return RGBW(r, g, b)
+    return RGBW(r, g, b, user_r, user_g, user_b, blend)
 
-def color_waves(led_theta, ball_rho, ball_theta, day_ms, rotation):
+def color_waves(led_theta, ball_rho, ball_theta, day_ms, rotation, speed, user_r, user_g, user_b, blend):
     movement = TWO_PI * day_ms / 60000
     theta = led_theta + rotation + movement
     r = (math.sin(theta * 1559 / 1000) + 1.0) / 2.0
     g = (math.sin(theta * 1193 / 1000) + 1.0) / 2.0
     b = (math.sin(theta * 2161 / 1000) + 1.0) / 2.0
-    return Perceptual_to_RGBW(r, g, b)
+    return Perceptual_to_RGBW(r, g, b, user_r, user_g, user_b, blend)
 
-def ball_spotlight(led_theta, ball_rho, ball_theta, day_ms, rotation):
+def ball_spotlight(led_theta, ball_rho, ball_theta, day_ms, rotation, speed, user_r, user_g, user_b, blend):
     angle_diff = min_angle(ball_theta, led_theta)
     ball_rho_adjusted = math.sqrt(ball_rho) # keep narrow more than wide
     w = max(min(10*((1.0-ball_rho_adjusted) * PI - (angle_diff - TWO_PI/50)), max(ball_rho,0.3)), 0.0)
-    return Perceptual_to_RGBW(w, w, w)
+    return Perceptual_to_RGBW(w, w, w, user_r, user_g, user_b, blend)
 
 # sisbot simulator - replace with code that gets ball location from sisbot (I could not get that working, so I'm simulating it)
 def sisbotSimulator():
-    pattern = 3
+    pattern = 3 # this would be set by the user (they would have a set of patterns to pick from)
+    speed = 1 # this would be set by the users and sets rotation speed of patterns (0=stopped, 1=slow; 1 minute per rotation, 60=fast; 1 second per rotation
+    brightness = 1.0 # this would be set by user (currently not implemented)
+    user_r = 255 # user chosen color, passed to patterns; typically used with blend to mix in final output
+    user_g = 0
+    user_b = 0
+    blend = 0.5
+
     dt = datetime.now()
     day_ms = ((dt.hour * 60 + dt.minute) * 60 + dt.second) * 1000 + dt.microsecond / 1000
-    speed = 1 # 0=stopped, 1=slow (1 minute per rotation), 60=fast (1 second per rotation)
     rotation = TWO_PI * day_ms * speed / 60000
     # move ball in rho
     #ball_rho = (math.sin(TWO_PI * day_ms * 2 / 60000) + 1.0) / 2.0
@@ -87,7 +96,6 @@ def sisbotSimulator():
     # move ball in theta
     ball_rho = 1.0
     ball_theta = TWO_PI * day_ms * 2 / 60000
-    #brightness = 1.0
 
     # get the pattern function
     switcher = {
@@ -101,7 +109,7 @@ def sisbotSimulator():
     # set LED colors based on pattern function
     for i in range(strip.numPixels()):
         led_theta = TWO_PI * i / strip.numPixels()
-        strip.setPixelColor(i, func(led_theta, ball_rho, ball_theta, day_ms, rotation))
+        strip.setPixelColor(i, func(led_theta, ball_rho, ball_theta, day_ms, rotation, speed, user_r, user_g, user_b, blend))
     # send to strip
     strip.show()
     # limit update speed (no faster than this, but likely slower due to math and strip update)
