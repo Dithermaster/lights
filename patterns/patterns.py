@@ -26,8 +26,8 @@ def RGBW(r, g, b, user_r, user_g, user_b, blend):
     r_int = int(round(blend * user_r + (1.0 - blend) * r))
     g_int = int(round(blend * user_g + (1.0 - blend) * g))
     b_int = int(round(blend * user_b + (1.0 - blend) * b))
-    w = min(r, g, b)
-    return Color(r-w, g-w, b-w, w)
+    w = min(r_int, g_int, b_int)
+    return Color(r_int-w, g_int-w, b_int-w, w)
 
 def Perceptual_to_RGBW(r, g, b, user_r, user_g, user_b, blend):
     # squares perceptual value to make it linear, converts to 0-255 integer
