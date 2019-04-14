@@ -23,6 +23,10 @@ def RGBW(r, g, b):
     w = min(r, g, b)
     return Color(r-w, g-w, b-w, w)
 
+def Perceptual_to_RGBW(r, g, b)
+    # squares perceptual value to make it linear, converts to 0-255 integer
+    return RGBW(int(round(r*r*255.0)), int(round(g*g(255.0)), int(round(b*b*255.0)))
+
 def rainbow_sat(led_theta, day_ms, rotation):
     theta = led_theta + rotation
     pos = int(256 * theta / TWO_PI) & 255
@@ -46,17 +50,17 @@ def rainbow_pastel(led_theta, day_ms, rotation):
 def color_waves(led_theta, day_ms, rotation):
     movement = TWO_PI * day_ms / 60000
     theta = led_theta + rotation + movement
-    r = int(round((math.sin(theta * 1559 / 1000) + 1.0) / 2.0 * 255.0))
-    g = int(round((math.sin(theta * 1193 / 1000) + 1.0) / 2.0 * 255.0))
-    b = int(round((math.sin(theta * 2161 / 1000) + 1.0) / 2.0 * 255.0))
-    return RGBW(r, g, b)
+    r = (math.sin(theta * 1559 / 1000) + 1.0) / 2.0
+    g = (math.sin(theta * 1193 / 1000) + 1.0) / 2.0
+    b = (math.sin(theta * 2161 / 1000) + 1.0) / 2.0
+    return Perceptual_to_RGBW(r, g, b)
 
 # sisbot simulator - replace with code that gets ball location from sisbot (I could not get that working, so I'm simulating it)
 def sisbotSimulator():
     pattern = 3
     #ball_rho = 0.0
     #ball_theta = 0.0
-    speed = 0 # 0=stopped, 1=slow (1 minute per rotation), 60=fast (1 second per rotation)
+    speed = 5 # 0=stopped, 1=slow (1 minute per rotation), 60=fast (1 second per rotation)
     dt = datetime.now()
     day_ms = ((dt.hour * 60 + dt.minute) * 60 + dt.second) * 1000 + dt.microsecond / 1000
     rotation = TWO_PI * day_ms * speed / 60000
