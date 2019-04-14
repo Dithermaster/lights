@@ -57,7 +57,7 @@ def color_waves(led_theta, ball_rho, ball_theta, day_ms, rotation):
 
 def ball_spotlight(led_theta, ball_rho, ball_theta, day_ms, rotation):
     angle_diff = led-theta - ball_theta
-    if (angle_diff) < 0.0
+    if (angle_diff < 0.0)
         angle_diff = -angle_diff
     angle_diff = angle_diff - floor(angle_diff / TWO_PI) * TWO_PI
     w = 0
