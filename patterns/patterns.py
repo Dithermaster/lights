@@ -43,9 +43,16 @@ def rainbow_pastel(led_theta, day_ms, rotation):
     b = int(round((math.sin(theta+2*offset) + 1.0) / 2.0 * 255.0))
     return RGBW(r, g, b)
 
+def color_waves(led_theta, day_ms, rotation):
+    theta = led_theta + rotation
+    r = int(round((math.sin(theta * 1559 / 1000) + 1.0) / 2.0 * 255.0))
+    g = int(round((math.sin(theta * 1193 / 1000) + 1.0) / 2.0 * 255.0))
+    b = int(round((math.sin(theta * 2161 / 1000) + 1.0) / 2.0 * 255.0))
+    return RGBW(r, g, b)
+
 # sisbot simulator - replace with code that gets ball location from sisbot (I could not get that working, so I'm simulating it)
 def sisbotSimulator():
-    pattern = 2
+    pattern = 3
     #ball_rho = 0.0
     #ball_theta = 0.0
     speed = 6 # 0=stopped, 1=slow (1 minute per rotation), 60=fast (1 second per rotation)
@@ -57,7 +64,8 @@ def sisbotSimulator():
     # get the pattern function
     switcher = {
         1: rainbow_sat,
-        2: rainbow_pastel
+        2: rainbow_pastel,
+        3: color_waves
     }
     func = switcher.get(pattern, lambda: RGBW(0, 0, 0))
 
