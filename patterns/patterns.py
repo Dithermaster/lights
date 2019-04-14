@@ -20,6 +20,8 @@ SK6812_STRIP_GRBW = 0x18081000  # Adafruit RGBW strip
 PI = math.pi
 TWO_PI = math.pi * 2.0
 
+# utility functions
+
 def RGBW(r, g, b):
     w = min(r, g, b)
     return Color(r-w, g-w, b-w, w)
@@ -27,6 +29,16 @@ def RGBW(r, g, b):
 def Perceptual_to_RGBW(r, g, b):
     # squares perceptual value to make it linear, converts to 0-255 integer
     return RGBW(int(round(r*r*255.0)), int(round(g*g*255.0)), int(round(b*b*255.0)))
+
+def min_angle(angle1, angle2):
+    angle1 = angle1 - math.floor(angle1 / TWO_PI) * TWO_PI # make 0 .. TWO_PI
+    angle2 = angle2 - math.floor(angle2 / TWO_PI) * TWO_PI # make 0 .. TWO_PI
+    angle_diff = abs(angle2 - angle1)
+    if (angle_diff > PI):
+        angle_diff -= TWO_PI
+    return abs(angle_diff)
+
+# patterns below
 
 def rainbow_sat(led_theta, ball_rho, ball_theta, day_ms, rotation):
     theta = led_theta + rotation
@@ -55,14 +67,6 @@ def color_waves(led_theta, ball_rho, ball_theta, day_ms, rotation):
     g = (math.sin(theta * 1193 / 1000) + 1.0) / 2.0
     b = (math.sin(theta * 2161 / 1000) + 1.0) / 2.0
     return Perceptual_to_RGBW(r, g, b)
-
-def min_angle(angle1, angle2):
-    angle1 = angle1 - math.floor(angle1 / TWO_PI) * TWO_PI # make 0 .. TWO_PI
-    angle2 = angle2 - math.floor(angle2 / TWO_PI) * TWO_PI # make 0 .. TWO_PI
-    angle_diff = abs(angle2 - angle1)
-    if (angle_diff > PI):
-        angle_diff -= TWO_PI
-    return abs(angle_diff)
 
 def ball_spotlight(led_theta, ball_rho, ball_theta, day_ms, rotation):
     angle_diff = min_angle(ball_theta, led_theta)
