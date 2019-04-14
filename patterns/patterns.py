@@ -68,12 +68,12 @@ def ball_spotlight(led_theta, ball_rho, ball_theta, day_ms, rotation):
 # sisbot simulator - replace with code that gets ball location from sisbot (I could not get that working, so I'm simulating it)
 def sisbotSimulator():
     pattern = 3
-    ball_rho = 1.0
-    ball_theta = TWO_PI * day_ms * 6 / 60000
-    speed = 5 # 0=stopped, 1=slow (1 minute per rotation), 60=fast (1 second per rotation)
     dt = datetime.now()
     day_ms = ((dt.hour * 60 + dt.minute) * 60 + dt.second) * 1000 + dt.microsecond / 1000
+    speed = 5 # 0=stopped, 1=slow (1 minute per rotation), 60=fast (1 second per rotation)
     rotation = TWO_PI * day_ms * speed / 60000
+    ball_rho = 1.0
+    ball_theta = TWO_PI * day_ms * 6 / 60000
     #brightness = 1.0
 
     # get the pattern function
