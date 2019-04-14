@@ -23,15 +23,15 @@ TWO_PI = math.pi * 2.0
 # utility functions
 
 def RGBW(r, g, b, user_r, user_g, user_b, blend):
-    r = blend * user_r + (1.0 - blend) * r
-    g = blend * user_g + (1.0 - blend) * g
-    b = blend * user_b + (1.0 - blend) * b
+    r_int = int(round(blend * user_r + (1.0 - blend) * r))
+    g_int = int(round(blend * user_g + (1.0 - blend) * g))
+    b_int = int(round(blend * user_b + (1.0 - blend) * b))
     w = min(r, g, b)
     return Color(r-w, g-w, b-w, w)
 
 def Perceptual_to_RGBW(r, g, b, user_r, user_g, user_b, blend):
     # squares perceptual value to make it linear, converts to 0-255 integer
-    return RGBW(int(round(r*r*255.0)), int(round(g*g*255.0)), int(round(b*b*255.0)), user_r, user_g, user_b, blend)
+    return RGBW(r*r*255.0, g*g*255.0, b*b*255.0, user_r, user_g, user_b, blend)
 
 def min_angle(angle1, angle2):
     angle1 = angle1 - math.floor(angle1 / TWO_PI) * TWO_PI # make 0 .. TWO_PI
