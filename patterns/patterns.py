@@ -69,8 +69,8 @@ def sisbotSimulator():
     day_ms = ((dt.hour * 60 + dt.minute) * 60 + dt.second) * 1000 + dt.microsecond / 1000
     speed = 5 # 0=stopped, 1=slow (1 minute per rotation), 60=fast (1 second per rotation)
     rotation = TWO_PI * day_ms * speed / 60000
-    ball_rho = 1.0
-    ball_theta = TWO_PI * day_ms * 2 / 60000
+    ball_rho = (sin(TWO_PI * day_ms * 2 / 60000) + 1.0) / 2.0
+    ball_theta = 0.0
     #brightness = 1.0
 
     # get the pattern function
