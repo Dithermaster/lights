@@ -106,7 +106,7 @@ def sisbotSimulator():
         3: color_waves,
         4: ball_spotlight
     }
-    func = switcher.get(pattern, lambda: RGBW(0, 0, 0))
+    func = switcher.get(pattern, lambda: RGBW(0, 0, 0, 0, 0, 0, 0))
 
     # set LED colors based on pattern function
     for i in range(strip.numPixels()):
@@ -132,5 +132,5 @@ if __name__ == '__main__':
     except KeyboardInterrupt:
         # turn off LEDs on exit
         for i in range(strip.numPixels()):
-            strip.setPixelColor(i, RGBW(0,0,0))
+            strip.setPixelColor(i, RGBW(0,0,0, 0,0,0,0))
         strip.show()
