@@ -53,7 +53,6 @@ var pauseRequest= false;
 
 var sp // serial port
 var sp_lcp // light controller program socket
-var cb_lcp_reconnect // if send errors, try sisbot reconnect
 
 var paused = true;
 //pars stored for pause/resume:
@@ -477,13 +476,12 @@ function nextSeg(mi, miMax ,si, siMax, thStepsSeg, rStepsSeg,
       else {
         // send to socket
         try {
-          inp = "b," + newR + "," + newTh +","+photoAvgOld;
+          inp = "b," + newR + "," + newTh +","+lastPhotoOut;
           message = Buffer(inp);
-          sp_lcp.send(message, 0, message.length, '/tmp/python_unix_sockets_example');
-          logEvent(1,'LCP ' + inp);
+          sp_lcp.send(message, 0, message.length, '/tmp/sisyphus_sockets');
+          // logEvent(1,'LCP ' + inp);
         } catch (err) {
-          logEvent(1,'Error writing to LCP socket ' + err.message);
-          this.cb_lcp_reconnect();
+          // logEvent(1,'Error writing to LCP socket ' + err.message);
         }
 
         //logEvent(1, cmd);
@@ -1154,6 +1152,19 @@ module.exports = {
   setBrightness: function(value) {
     sliderBrightness = value;
 		//logEvent(1, "sb: " + sliderBrightness);
+
+    if (autodim !== 'true') {
+      // convert to an integer from 0 - 1023, parabolic scale.
+      var pwm = Math.pow(2, value * 10) - 1;
+      pwm = Math.floor(pwm);
+
+      if (pwm == 0) {
+				sp.write("SE,0\r");
+      } else {
+				sp.write("SE,1," + pwm +"\r");
+        lastPhotoOut = pwm;
+      }
+  	}
   },
 
   // Set a speed scalar where 1 is normal, 2 is double
