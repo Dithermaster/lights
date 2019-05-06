@@ -5,7 +5,7 @@ var _ 		= require('underscore');
 var moment 	= require('moment');
 var config 	= require('./config');
 
-{ //globals:
+{ //globals
 var twoBallEnabled=false;
 var Vball=2,  Accel = 2, MTV=0.5, Vmin = 0.1, Voverride = 1;
 var balls  = 1; //sis vs tant mode
@@ -32,9 +32,9 @@ var homingRHitState; // The value the sensor reports when triggered. 0 or 1.
 var useFaultSensors = 0; // True if the bot has sensors. Otherwise the current position is considered home.
 //var faultThPin = "D,1"; // SBB board pin for homing theta sensor
 //var faultRPin = "D,0"; // SBB board pin for homing rho sensor
-var faultActiveState = 1;
-
-
+//var faultThActiveState = 1; // The value the sensor reports when triggered. 0 or 1.
+//var faultRActiveState = 1; // The value the sensor reports when triggered. 0 or 1.
+faultActiveState = 1;
 
 var STATUS = 'waiting'; //vs. playing, homing
 var options = {  //user commands available
@@ -53,6 +53,7 @@ var pauseRequest= false;
 
 var sp // serial port
 var sp_lcp // light controller program socket
+var cb_lcp_reconnect // if send errors, try sisbot reconnect
 
 var paused = true;
 //pars stored for pause/resume:
@@ -105,10 +106,6 @@ var certain = 4;
 var maTheta; //Theta current
 var maR;     //R current
 var Vm;      //motor voltage
-
-
-var IS_SERVO;
-var servo_wait_before_faulting = false;
 
 }
 
@@ -301,7 +298,8 @@ function nextMove(mi) {
   RDIST = moveRdist;
 
   moveThDist = moveThRad * rCrit;
-  moveDist = Math.sqrt((moveThDist * moveThDist) + (moveRdist * moveRdist));
+  moveDist = Math.sqrt((moveThDist * moveThDist) +
+                       (moveRdist * moveRdist));
   MOVEDIST = moveDist;
 
   headingNow = Math.atan2(moveRdist, moveThDist);
@@ -317,7 +315,8 @@ function nextMove(mi) {
     segs = 1;
     fracSeg = segsReal;
     //logEvent(1, 'TINY MOVE, frac= '+segsReal)
-  } else fracSeg=1;
+  }
+  else fracSeg=1;
 
   thStepsNew = Math.floor(thNew * thSPRad) * thDirSign;
   thStepsOld = Math.floor(thOld * thSPRad) * thDirSign;
@@ -335,7 +334,8 @@ function nextMove(mi) {
               //      Math.floor(thOld / (2 * Math.PI) * rSPRev )  * nestedAxisSign;
 //  logEvent(1, rStepsComp + '*');
 
-  rStepsComp = Math.floor(thStepsNew * rthAsp * nestedAxisSign) - Math.floor(thStepsOld * rthAsp * nestedAxisSign);
+  rStepsComp = Math.floor(thStepsNew * rthAsp * nestedAxisSign) -
+                    Math.floor(thStepsOld * rthAsp * nestedAxisSign);
 
   //logEvent(1, rStepsComp + '');
 
@@ -353,11 +353,13 @@ function nextMove(mi) {
 
   //logEvent(1, 'move ' + mi + ' of ' + miMax);
 
-  nextSeg(mi, miMax,0,segs, thStepsSeg, rStepsSeg, thLOsteps, rLOsteps, 0, 0, fracSeg);
+  nextSeg(mi, miMax,0,segs, thStepsSeg, rStepsSeg,
+        thLOsteps, rLOsteps, 0, 0, fracSeg);
 
 }
 //////      NEXTSEG     ///////////////////////////////////
-function nextSeg(mi, miMax ,si, siMax, thStepsSeg, rStepsSeg, thLOsteps, rLOsteps, eLOth, eLOr, fracSeg) {
+function nextSeg(mi, miMax ,si, siMax, thStepsSeg, rStepsSeg,
+                thLOsteps, rLOsteps, eLOth, eLOr, fracSeg) {
   var msec = baseMS;
   var cmd;
   var thLOsign=0, rLOsign=0;
@@ -370,7 +372,6 @@ function nextSeg(mi, miMax ,si, siMax, thStepsSeg, rStepsSeg, thLOsteps, rLOstep
     nextMove(mi);
     return;
   }
-  accelSegs = Vball * Voverride * segRate /(2 * Accel); //accel fix for speed slider effect
   //ACCEL/DECEL ---------------------------
   if (!pauseRequest){
     //logEvent(1, ASindex);
@@ -379,7 +380,8 @@ function nextSeg(mi, miMax ,si, siMax, thStepsSeg, rStepsSeg, thLOsteps, rLOstep
       if (ASindex < accelSegs) ASindex++; //accel
       if (ASindex > accelSegs) ASindex = accelSegs; //updates Accel changes ?--;?
     }
-  } else {  //pause requested:
+  }
+  else {  //pause requested:
     logEvent(1, 'decelerating...');
     //logEvent(1, ASindex);
     if (ASindex <= VminSegs) {
@@ -395,7 +397,7 @@ function nextSeg(mi, miMax ,si, siMax, thStepsSeg, rStepsSeg, thLOsteps, rLOstep
       RthLOsteps=thLOsteps;    RrLOsteps=rLOsteps;
       ReLOth=eLOth;  ReLOr=eLOr;  RfracSeg = fracSeg;
 
-	    sp.write('EM,0,0\r'); // turn off motors
+	  sp.write('EM,0,0\r'); // turn off motors
 
       return; //break the nextSeg chain = being paused
     }
@@ -416,10 +418,12 @@ function nextSeg(mi, miMax ,si, siMax, thStepsSeg, rStepsSeg, thLOsteps, rLOstep
   else rEffect = plotRadius/2 + Math.abs(plotRadius/2 - rSeg); //tant
 
   if (rEffect > rCrit) { //ball is outside rCrit:
-      rFactor1 = Math.sqrt((RDIST * RDIST + THRAD * THRAD * rEffect * rEffect)) / MOVEDIST;
+      rFactor1 = Math.sqrt((RDIST * RDIST +
+                  THRAD * THRAD * rEffect * rEffect)) / MOVEDIST;
       //logEvent(1, 'rFactor1: ' + rFactor1);
       msec *= rFactor1;
-  } else { //ball is inside rCrit-- this is shaky at best...
+  }
+  else { //ball is inside rCrit-- this is shaky at best...
     if (rSeg > RF2MIN) {
       rFactor2 = Math.abs((RDIST / MOVEDIST) * (rCrit / rSeg));
     }
@@ -469,16 +473,17 @@ function nextSeg(mi, miMax ,si, siMax, thStepsSeg, rStepsSeg, thLOsteps, rLOstep
 
   sp.write(cmd, function(err, res) {
     sp.drain(function(err, result) {
-      if (err) logEvent(2, err, result);
+      if (err) {logEvent(2, err, result);}
       else {
         // send to socket
         try {
-          inp = "b," + newR + "," + newTh +","+lastPhotoOut;
+          inp = "b," + newR + "," + newTh +","+photoAvgOld;
           message = Buffer(inp);
-          sp_lcp.send(message, 0, message.length, '/tmp/sisyphus_sockets');
-          // logEvent(1,'LCP ' + inp);
+          sp_lcp.send(message, 0, message.length, '/tmp/python_unix_sockets_example');
+          logEvent(1,'LCP ' + inp);
         } catch (err) {
-          // logEvent(2,'Error writing to LCP socket ' + err.message);
+          logEvent(1,'Error writing to LCP socket ' + err.message);
+          this.cb_lcp_reconnect();
         }
 
         //logEvent(1, cmd);
@@ -486,7 +491,8 @@ function nextSeg(mi, miMax ,si, siMax, thStepsSeg, rStepsSeg, thLOsteps, rLOstep
         thAccum += thStepsOut;
         rAccum += rStepsOut;
 
-        nextSeg(mi, miMax, si, siMax, thStepsSeg, rStepsSeg, thLOsteps, rLOsteps, eLOth, eLOr, 1);
+        nextSeg(mi, miMax, si, siMax, thStepsSeg, rStepsSeg,
+                thLOsteps, rLOsteps, eLOth, eLOr, 1);
       }
     });
   });
@@ -514,7 +520,8 @@ function lookAhead(mi, heading) {
 function go() {
   paused=false;
   setStatus('playing');
-  nextSeg(Rmi, RmiMax, Rsi, RsiMax, RthStepsSeg, RrStepsSeg, RthLOsteps, RrLOsteps, ReLOth, ReLOr, RfracSeg);
+  nextSeg(Rmi, RmiMax, Rsi, RsiMax, RthStepsSeg, RrStepsSeg,
+                        RthLOsteps, RrLOsteps, ReLOth, ReLOr, RfracSeg);
 }
 
 //////      GO THETA HOME    ///////////////////////////////////
@@ -529,7 +536,7 @@ function goThetaHome() {
     setStatus('waiting');
     logEvent(1, 'theta homing aborted');
 
-	  photoTimeout = setTimeout(checkPhoto, photoMsec); //restart photosensing for autodim
+	photoTimeout = setTimeout(checkPhoto, photoMsec); //restart photosensing for autodim
 
     return;
   }
@@ -568,7 +575,9 @@ function goThetaHome() {
 			});
 		});
 
-	} else { //Theta home sensor activated, confirm it:
+	}
+
+	else { //Theta home sensor activated, confirm it:
 
 		if (RETESTCOUNTER < RETESTNUM) {//not fully confirmed yet:
 			RETESTCOUNTER++;
@@ -587,7 +596,9 @@ function goThetaHome() {
 					}
 				});
 			});
-		} else { //passed retesting so truly home:
+		}
+
+		else { //passed retesting so truly home:
 			thAccum = 0;
 			THETA_HOME_COUNTER = 0;
 			// logEvent(1, 'THETA AT HOME!');
@@ -601,6 +612,7 @@ function goThetaHome() {
 
 		}
 
+
 	}
 
 }
@@ -610,17 +622,6 @@ function goRhoHome() {
   var rhoHomingStr, rhoHomeQueryStr = "PI," + homingRPin + "\r";
 	//R home pin C6
 
-  if (IS_SERVO) {//skip sensored homing RHO:
-
-    console.log();
-    console.log("rAccum= " + rAccum);
-    console.log();
-
-    rAccum = 0;
-    photoTimeout = setTimeout(checkPhoto, photoMsec); //restart photosensing for autodim
-    setStatus('waiting');
-    return;
-  }
 	WAITING_RHO_HOMED = true;
 
   if (pauseRequest) {
@@ -661,23 +662,29 @@ function goRhoHome() {
 			});
 		});
 
-	} else { //Rho home sensor activated, confirm it:
+	}
+
+	else { //Rho home sensor activated, confirm it:
 
 		if (RETESTCOUNTER < RETESTNUM) {//not fully confirmed yet:
 			RETESTCOUNTER++;
 			// logEvent(1, "RETESTCOUNTER: " + RETESTCOUNTER);
 			sp.write(rhoHomeQueryStr, function(err, res) {
 				sp.drain(function(err, result) {
-					if (err) logEvent(2, err, result);
+					if (err) {logEvent(2, err, result);}
 					else {
 						logEvent(1, rhoHomeQueryStr);
 						WAITING_RHO_HOMED = true;
 						//allow time for return of sensor state:
 						setTimeout(goRhoHome, 15);
+
 					}
 				});
 			});
-		} else { //passed retesting so truly home:
+		}
+
+		else { //passed retesting so truly home:
+
 			thAccum = 0;
 			THETA_HOME_COUNTER = 0;
 			// logEvent(1, 'THETA AT HOME!');
@@ -692,6 +699,8 @@ function goRhoHome() {
 
 			logEvent(1, 'homed');
 
+      // centerRHO();
+
 			if (PLHOMED) { //homed from playlist
 				setStatus('playing');
 				if (PLAYTYPE == 'shuffle') { //relevant only for homes in shuffleplay
@@ -700,7 +709,8 @@ function goRhoHome() {
 					REMAINING--;
 				}
 				nextPlaylistLine(PLINDEX, plLinesMax);
-			} else { //homed manually
+			}
+			else { //homed manually
 				setStatus('waiting');
 			}
 
@@ -713,8 +723,6 @@ function goRhoHome() {
 	}
 
 }
-
-
 
 //////      JOG     ///////////////////////////////////
 function jog(axis, direction) {
@@ -896,25 +904,18 @@ function parseReceivedSerialData(data) {
 			{
 				var thFaultState, rFaultState;
 				var thHomeState, rHomeState;
-        if (servo_wait_before_faulting)
-        {
-          logEvent(2, "NOT checking faults yet, servo needs more time first");
-        }
-        else
-        {
-  				if ((num & 2) > 0) {thFaultState = 1;} else {thFaultState = 0;}
-  				if ((num & 1) > 0) {rFaultState = 1;} else {rFaultState = 0;}
-          			if (thFaultState == faultActiveState && rFaultState == faultActiveState) {
-  					logEvent(2, "Theta and Rho faulted!");
-  					onServoThRhoFault();
-  				} else if (thFaultState == faultActiveState) {
-  					logEvent(2, "Theta faulted!");
-  					onServoThFault();
-  				} else if (rFaultState == faultActiveState) {
-  					logEvent(2, "Rho faulted!");
-  					onServoRhoFault();
-  				}
-        }
+				if ((num & 2) > 0) {thFaultState = 1;} else {thFaultState = 0;}
+				if ((num & 1) > 0) {rFaultState = 1;} else {rFaultState = 0;}
+        			if (thFaultState == faultActiveState && rFaultState == faultActiveState) {
+					logEvent(2, "Theta and Rho faulted!");
+					onServoThRhoFault();
+				} else if (thFaultState == faultActiveState) {
+					logEvent(2, "Theta faulted!");
+					onServoThFault();
+				} else if (rFaultState == faultActiveState) {
+					logEvent(2, "Rho faulted!");
+					onServoRhoFault();
+				}
 			}
 				if ((num & 4) > 0) {thHomeState = 1;} else {thHomeState = 0;}
 				if (thHomeState == homingThHitState) {
@@ -980,7 +981,7 @@ module.exports = {
     homingThPin = config.homingThPin;
 
     HOMETHSTEPS = config.homingThSteps * thDirSign;
-	  HOMERSTEPS = config.homingRSteps;
+	HOMERSTEPS = config.homingRSteps;
 
     homingThHitState = parseInt(config.homingThHitState, 10)
     homingRHitState = parseInt(config.homingRHitState, 10)
@@ -990,56 +991,38 @@ module.exports = {
     thSPRad = thSPRev / (2* Math.PI);
 
     THETA_HOME_MAX =  Math.round(thSPRev * 1.03 / HOMETHSTEPS);//3% extra
-	  // logEvent(1, 'T H MAX= '+THETA_HOME_MAX);
+	// logEvent(1, 'T H MAX= '+THETA_HOME_MAX);
     RHO_HOME_MAX =  Math.round(rSPInch * (plotRadius + 0.25) / HOMERSTEPS);// 1/4" extra
 
-    // Servo values
-    if (config.isServo) {
-      useFaultSensors = config.isServo;
-      IS_SERVO = config.isServo;
-    }
-    if (config.faultActiveState)  faultActiveState = config.faultActiveState;
-    if (config.twoBallEnabled)    twoBallEnabled = config.twoBallEnabled;
+	// Servo values
+	if (config.isServo)				useFaultSensors = config.isServo;
+	if (config.faultActiveState)	faultActiveState = config.faultActiveState;
+	if (config.twoBallEnabled)		twoBallEnabled = config.twoBallEnabled;
   },
 
-
-  allowFaultChecking() {
-    servo_wait_before_faulting = false;
-  },
 
 	// The serial port connection is negotiated elsewhere. This method takes that
 	// serial port object and saves it for communication with the bot.
-  useSerial: function(serial) {
-    sp = serial;
+	useSerial: function(serial) {
+		sp = serial;
+		logEvent(1, '#useSerial', sp.path, 'isOpen:', sp.isOpen());
 
-    if (IS_SERVO) {
-      servo_wait_before_faulting = true;
-      setTimeout(function(this2){  this2.allowFaultChecking(); }, 15000, this);
-    }
-    logEvent(1, '#useSerial', sp.path, 'isOpen:', sp.isOpen);
+		sp.on('data', parseReceivedSerialData);
+		sp.write('CU,1,0\r'); // turn off EBB sending "OK"s
 
-    sp.on('data', parseReceivedSerialData);
-    sp.write('CU,1,0\r'); // turn off EBB sending "OK"s
+		sp.write('AC,0,1\r'); // turn on analog channel 0 for current reading Theta
+		sp.write('AC,1,1\r'); // turn on analog channel 1 for current reading R
+		sp.write('PD,B,3,1\r'); //set analog pin to input
+		sp.write('AC,9,1\r'); // turn on analog channel 9 for reading photosensor
+		sp.write("SE,1,100\r"); //turn on low lighting
 
-    sp.write('AC,0,1\r'); // turn on analog channel 0 for current reading Theta
-    sp.write('AC,1,1\r'); // turn on analog channel 1 for current reading R
-    sp.write('PD,B,3,1\r'); //set analog pin to input
-    sp.write('AC,9,1\r'); // turn on analog channel 9 for reading photosensor
 
-    sp.write('AC,8,0\r'); // turn off analog channel 8 for servo enable line
-    sp.write('AC,10,0\r'); // turn off analog channel 10 for servo enable line
-    sp.write('PD,B,1,0\r'); //set B1 to output for Rho en/disable
-    sp.write('PD,B,2,0\r'); //set B2 to output for Theta en/disable
+		checkPhoto(); //start ambient light sensing
 
-    sp.write('PO,B,1,1\r'); //set B1 high to enable Rho
-    sp.write('PO,B,2,1\r'); //set B2 high to enable Theta
-
-    sp.write("SE,1,100\r"); //turn on low lighting
-
-    checkPhoto(); //start ambient light sensing
   },
 
-  useLCPSocket: function (newsock) {
+  useLCPSocket: function (newsock)
+  {
     sp_lcp = newsock;
   },
 
@@ -1159,31 +1142,18 @@ module.exports = {
 	// get the autodim toggle value
   setAutodim: function(value) {
     autodim = value;
-  	logEvent(1, "autodim = " + autodim);
+	logEvent(1, "autodim = " + autodim);
 
-  	if (autodim == 'true') {
-  		photoArray.fill(photoMin);
-  		checkPhoto();
-  	}
+	if (autodim == 'true') {
+		photoArray.fill(photoMin);
+		checkPhoto();
+	}
   },
 
 	// get the brightness slider value
   setBrightness: function(value) {
     sliderBrightness = value;
 		//logEvent(1, "sb: " + sliderBrightness);
-
-    if (autodim !== 'true') {
-      // convert to an integer from 0 - 1023, parabolic scale.
-      var pwm = Math.pow(2, value * 10) - 1;
-      pwm = Math.floor(pwm);
-
-      if (pwm == 0) {
-				sp.write("SE,0\r");
-      } else {
-				sp.write("SE,1," + pwm +"\r");
-        lastPhotoOut = pwm;
-      }
-  	}
   },
 
   // Set a speed scalar where 1 is normal, 2 is double
@@ -1198,23 +1168,24 @@ module.exports = {
   },
 
   getThetaPosition: function() {
-  	var thetaDistHome, modRads, rawRads, shortestRads;
+	var thetaDistHome, modRads, rawRads, shortestRads;
 
-  	rawRads = thAccum / thSPRad;
-  	// logEvent(1, "thAccum is " + thAccum + " steps");
-  	// logEvent(1, "raw Theta postion is " + rawRads + " rads");
+	rawRads = thAccum / thSPRad;
+	logEvent(1, "thAccum is " + thAccum + " steps");
+	logEvent(1, "raw Theta postion is " + rawRads + " rads");
 
-  	modRads = rawRads % (2 * Math.PI);
-  	// logEvent(1, "modRads = " + modRads);
+	modRads = rawRads % (2 * Math.PI);
+	logEvent(1, "modRads = " + modRads);
 
-  	shortestRads = modRads*-1; //this is verified correct - but theta sign is wrong :(
+	shortestRads = modRads*-1; //this is verified correct - but theta sign is wrong :(
 
-  	if (modRads > Math.PI){
-  		shortestRads = 2 * Math.PI - modRads; //shortestRads = modRads - 2 * Math.PI;
-  	}
-  	if (modRads < -1 * Math.PI){
-  		shortestRads = -2 * Math.PI - modRads; //shortestRads = modRads + 2 * Math.PI;
-  	}
+	if (modRads > Math.PI){
+		shortestRads = 2 * Math.PI - modRads; //shortestRads = modRads - 2 * Math.PI;
+	}
+	if (modRads < -1 * Math.PI){
+		shortestRads = -2 * Math.PI - modRads; //shortestRads = modRads + 2 * Math.PI;
+	}
+
 
     return shortestRads;
  },

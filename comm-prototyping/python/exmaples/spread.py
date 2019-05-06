@@ -18,7 +18,6 @@ import signal
 
 # LED strip configuration:
 LED_COUNT      = 49      # Number of LED pixels.
-LED_OFFSET     = 10      # Degrees to offset the theta position
 LED_PIN        = 18      # GPIO pin connected to the pixels (18 uses PWM!).
 #LED_PIN        = 10      # GPIO pin connected to the pixels (10 uses SPI /dev/spidev0.0).
 LED_FREQ_HZ    = 800000  # LED signal frequency in hertz (usually 800khz)
@@ -43,7 +42,7 @@ def signal_handler(sig, frame):
     print("Shutting down...")
     server.close()
     colorWipe(strip, Color(0,0,0), 10) # clear lights regardless of -c flag
-    # os.remove("/tmp/sisyphus_sockets")
+    os.remove("/tmp/python_unix_sockets_example")
     print("Done")
     sys.exit(0)
 
@@ -92,7 +91,7 @@ def colorWipe(strip, color, wait_ms=50):
 
 def followball(rho, theta, photo, strip):
     tdeg = theta * 57.2958
-    tdeg = (tdeg+LED_OFFSET)%360
+    tdeg = tdeg%360
     tdeg = abs(360-tdeg)
 
     brightness = int(96 * (photo/1024))
@@ -144,7 +143,7 @@ if __name__ == '__main__':
     # Intialize the library (must be called once before other functions).
     strip.begin()
 
-    server = init('/tmp/sisyphus_sockets')
+    server = init('/tmp/python_unix_sockets_example')
 
     print ('Press Ctrl-C to quit.')
     if not args.clear:
@@ -163,7 +162,6 @@ if __name__ == '__main__':
             #     sys.stdout.flush()
             if (succode > 0):
                 # print (strback.rstrip()),
-                # sys.stdout.flush()
                 pos = strback.rstrip().split(',')
                 if (len(pos) == 4):
                     rho = float(pos[1])
