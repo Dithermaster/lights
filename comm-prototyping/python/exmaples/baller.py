@@ -42,7 +42,7 @@ def signal_handler(sig, frame):
     print("-" * 20)
     print("Shutting down...")
     server.close()
-    os.remove("/tmp/python_unix_sockets_example")
+    os.remove("/tmp/sisyphus_sockets")
     print("Done")
     sys.exit(0)
 
@@ -144,7 +144,7 @@ def followball(newpos, strip):
     if (len(pos) == 3):
         # print (pos[0])
         # print (pos[1])
-        # print (pos[2])        
+        # print (pos[2])
         rho = float(pos[1])
         theta = float(pos[2])
 
@@ -186,7 +186,7 @@ if __name__ == '__main__':
     # Intialize the library (must be called once before other functions).
     strip.begin()
 
-    server = init('/tmp/python_unix_sockets_example')
+    server = init('/tmp/sisyphus_sockets')
 
 
     print ('Press Ctrl-C to quit.')

@@ -42,7 +42,7 @@ def signal_handler(sig, frame):
     print("Shutting down...")
     server.close()
     colorWipe(strip, Color(0,0,0), 10) # clear lights regardless of -c flag
-    os.remove("/tmp/python_unix_sockets_example")
+    os.remove("/tmp/sisyphus_sockets")
     print("Done")
     sys.exit(0)
 
@@ -124,7 +124,7 @@ if __name__ == '__main__':
     # Intialize the library (must be called once before other functions).
     strip.begin()
 
-    server = init('/tmp/python_unix_sockets_example')
+    server = init('/tmp/sisyphus_sockets')
 
     print ('Press Ctrl-C to quit.')
     if not args.clear:
