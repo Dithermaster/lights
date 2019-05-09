@@ -485,9 +485,9 @@ function nextSeg(mi, miMax ,si, siMax, thStepsSeg, rStepsSeg,
           buf4.writeFloatBE(lastPhotoOut, 0);
           var totalLength = buf1.length + buf2.length + buf3.length + buf4.length;
 
-          var d = new Date();
-          var n = d.getMilliseconds();
-          logEvent(1, "Millis", n);
+          // var d = new Date();
+          // var n = d.getMilliseconds();
+          // logEvent(1, "Millis", n);
 
           // logEvent(1, "Values: ", newR, newTh, lastPhotoOut, "Buffer Length:", totalLength);
           message = Buffer.concat([buf1, buf2, buf3, buf4], totalLength);
