@@ -633,7 +633,7 @@ var sisbot = {
 		this._connectionError(service);
 	},
 
-  /***************************** Connect PI light controller  program ******************/
+  /***************************** Connect PI light controller program ******************/
   // _reconnect_lcp: function() {
   //   this.lcp_socket = unix_dg.createSocket('unix_dgram');
   //   this.lcp_socket.on('error', console.error);
@@ -673,7 +673,6 @@ var sisbot = {
 
     if (cb) cb(errv, rval);
   },
-
 
 	/***************************** Plotter ************************/
 	_connect: function() {

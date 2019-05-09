@@ -12,9 +12,8 @@ import sys
 import socket
 import fcntl, os
 import errno
-from time import sleep
 import signal
-
+import struct # convert bytes to float
 
 # LED strip configuration:
 LED_COUNT      = 49      # Number of LED pixels.
@@ -35,6 +34,8 @@ SK6812_STRIP_BGRW =                       0x18000810
 
 scolor = SK6812_STRIP_GRBW
 server = None
+
+socket_bytes = bytearray(256)
 
 def signal_handler(sig, frame):
     print('You pressed Ctrl+C!')
@@ -60,26 +61,22 @@ def init(socket_path):
 
 def get_data(server):
     try:
-        datagram = server.recv(1024)
+        nbytes, sender = server.recvfrom_into(socket_bytes)
     except socket.error, e:
         err = e.args[0]
         if err == errno.EAGAIN or err == errno.EWOULDBLOCK:
-            sleep(1)
-            #print 'No data available'
-            return 0,''
+            # time.sleep(1.0/1000)
+            # print 'No data available'
+            return 0
         else:
             # a "real" error occurred
             print e
             sys.exit(1)
     else:
-        if not datagram:
-            return -1, ''
+        if not nbytes:
+            return -1
         else:
-            strback = datagram.decode('utf-8')
-            #print(strback)
-            if "DONE" == strback:
-                return -1, ''
-            return len(strback),strback
+            return nbytes
 
 # Define functions which animate LEDs in various ways.
 def colorWipe(strip, color, wait_ms=50):
@@ -120,7 +117,7 @@ if __name__ == '__main__':
     args = parser.parse_args()
 
     # Create NeoPixel object with appropriate configuration.
-    strip = Adafruit_NeoPixel(LED_COUNT, LED_PIN, LED_FREQ_HZ, LED_DMA, LED_INVERT, LED_BRIGHTNESS, LED_CHANNEL) # , scolor !! not working
+    strip = Adafruit_NeoPixel(LED_COUNT, LED_PIN, LED_FREQ_HZ, LED_DMA, LED_INVERT, LED_BRIGHTNESS, LED_CHANNEL, scolor)
     # Intialize the library (must be called once before other functions).
     strip.begin()
 
@@ -137,20 +134,22 @@ if __name__ == '__main__':
         #  Loop and get incoming data from plotter
         #
         while True:
-            succode, strback = get_data(server)
-            # if (succode == 0):
-            #     print ('.'),
-            #     sys.stdout.flush()
-            if (succode > 0):
-                # print (strback.rstrip()),
-                pos = strback.rstrip().split(',')
-                if (len(pos) == 4):
-                    rho = float(pos[1])
-                    theta = float(pos[2])
-                    photo = float(pos[3])
+            bytes = get_data(server)
+            if bytes > 0:
+                command = socket_bytes[0]
+
+                if command == 98: # b
+                    [rho] = struct.unpack_from('>f', socket_bytes, 1)
+                    [theta] = struct.unpack_from('>f', socket_bytes, 5)
+                    [photo] = struct.unpack_from('>f', socket_bytes, 9)
+
+                    # timestamp = int(time.time()*1000.0)
+                    # print "%s\n" % (timestamp)
+                    # print "rho %s theta %s photo %s\n" % (rho, theta, photo),
+                    # sys.stdout.flush()
 
                     followball(rho, theta, photo, strip)
-            if succode < 0:
+            if bytes < 0:
                 break
 
     except KeyboardInterrupt:
