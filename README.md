@@ -9,7 +9,7 @@ Engineering prototype for streaming ball positions (rho, theta) from sisbot plot
 * git clone git@github.com:joelxxx/lights.git
 * Follow directions in  ~/lights/sisbot/system/install_python_strip.sh
 * Plug in the lights as shown in the photo  hookup_photo.jpg
-* test the default lights program 
+* test the default lights program
 * cd /home/pi/rpi_ws281x/python
 * sudo python examples/strandtest.py
 
@@ -24,13 +24,10 @@ Engineering prototype for streaming ball positions (rho, theta) from sisbot plot
 ## Setup & restart sisbot to send position information over the dgram socket
 * cd /home/pi/sisbot-server/sisbot
 * cp ~/lights/sisbot/* .
+* npm install unix-dgram
 * cd ../sisproxy
 * sudo rm /var/log/sisyphus/*
 * sudo ./restart.sh &
 
 
-After the table gets running you should see ball positions priting out from the python program, and the lights changing position and color as Theta and Rho change.
-
-
-
-
+After the table gets running you should see ball positions printing out from the python program, and the lights changing position and color as Theta and Rho change.

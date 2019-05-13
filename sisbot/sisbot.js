@@ -40,13 +40,10 @@ var ble_obj = {
     char: false,
     ip_address: new Buffer([0, 0, 0, 0]),
     update_ip_address: function(ip_address_str) {
-    		logEvent(1, "ble_obj update_ip_address()");
-        logEvent(1, 'Updated IP ADDRESS', ip_address_str, ip_address_str.split('.').map(function(i) {
-            return +i;
-        }));
-        this.ip_address = new Buffer(ip_address_str.split('.').map(function(i) {
-            return +i;
-        }));
+      var new_ip = ip_address_str.split('.').map(function(i) { return +i; });
+      // TODO: don't update/log unless the values are different
+      this.ip_address = new Buffer(new_ip);
+      logEvent(1, 'BLE Updated IP ADDRESS', ip_address_str, new_ip);
     },
     on_state_change: function(state) {
     		logEvent(1, "ble_obj on_state_change()");
@@ -238,7 +235,7 @@ var sisbot = {
 					logEvent(1, "Unknown:", obj);
 					self.collection.add(obj);
 			}
-      
+
 
 
 		});
@@ -250,7 +247,7 @@ var sisbot = {
     this.current_state.set("track_ids", tracks);
     logEvent(1,"done setting track_ids");
     this.current_state.set("playlist_ids", playlists);
-    
+
 
 		// make sure the hostname is correct
 		var regex = /^[^a-zA-Z]*/; // make sure first character is a-z
@@ -482,6 +479,7 @@ var sisbot = {
 		// connect
 		this._connect();
 
+    // position socket
     this._connect_lcp();
 
 		// wifi connect
@@ -635,18 +633,18 @@ var sisbot = {
 		this._connectionError(service);
 	},
 
-  /***************************** Connect PI light controller  program ******************/
-  _reconnect_lcp: function() {
-    this.lcp_socket = unix_dg.createSocket('unix_dgram');
-    this.lcp_socket.on('error', console.error);    
-    this.plotter.useLCPSocket(this.lcp_socket);    
-  },
+  /***************************** Connect PI light controller program ******************/
+  // _reconnect_lcp: function() {
+  //   this.lcp_socket = unix_dg.createSocket('unix_dgram');
+  //   this.lcp_socket.on('error', console.error);
+  //   this.plotter.useLCPSocket(this.lcp_socket);
+  // },
 
   _connect_lcp: function() {
     logEvent(1, 'connecting to light controller program');
     this.lcp_socket = unix_dg.createSocket('unix_dgram');
-    this.lcp_socket.on('error', console.error);    
-    this.plotter.useLCPSocket(this.lcp_socket, this._reconnect_lcp);
+    // this.lcp_socket.on('error', console.error);
+    this.plotter.useLCPSocket(this.lcp_socket);
   },
 
   lcpWrite: function(data, cb) {
@@ -661,23 +659,21 @@ var sisbot = {
     }
     var rval = {};
     var errv = null;
-    try 
+    try
     {
       message = Buffer(data.value);
-      this.lcp_socket.send(message, 0, message.length, '/tmp/python_unix_sockets_example');
+      this.lcp_socket.send(message, 0, message.length, '/tmp/sisyphus_sockets');
       rval.lcp_send = data.value;
     } catch(err) {
-      console.error('LCP write err', err);
+      // console.error('LCP write err', err);
       logEvent(1, 'LCP socket write err:' + err);
       rval.lcp_send_err = err;
       errv = {"err":"LCP socket write threw an error"}
     }
 
     if (cb) cb(errv, rval);
-
   },
 
- 
 	/***************************** Plotter ************************/
 	_connect: function() {
     if (this.serial && this.serial.isOpen()) return true;
@@ -989,9 +985,9 @@ state: function(data, cb) {
     //
 		if (this._validateConnection()) {
       var thHome = self.plotter.getThetaHome();
-			
+
       var rhoHome = self.plotter.getRhoHome();
-			
+
       logEvent(1, "Sensor Values", thHome, rhoHome);
 			console.log("Sensor Values", thHome, rhoHome);
 			//testing this:
@@ -1740,19 +1736,7 @@ state: function(data, cb) {
 		var value = this._clamp(+data.value, 0.0, 1.0);
 		this.current_state.set('brightness', value);
 
-		if (this.current_state.get('is_autodim') == "true") {
-	    	plotter.setBrightness(value);// for autodim
-		} else {
-		    // convert to an integer from 0 - 1023, parabolic scale.
-		    var pwm = Math.pow(2, value * 10) - 1;
-		    pwm = Math.floor(pwm);
-
-		    if (pwm == 0) {
-		      this._serialWrite('SE,0');
-		    } else {
-		      this._serialWrite('SE,1,'+pwm);
-		    }
-		}
+	  plotter.setBrightness(value);
 
 		this.save(null, null);
 

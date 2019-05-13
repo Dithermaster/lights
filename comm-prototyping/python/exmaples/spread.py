@@ -17,6 +17,7 @@ import struct # convert bytes to float
 
 # LED strip configuration:
 LED_COUNT      = 49      # Number of LED pixels.
+LED_OFFSET     = 10      # Degrees to offset the theta position
 LED_PIN        = 18      # GPIO pin connected to the pixels (18 uses PWM!).
 #LED_PIN        = 10      # GPIO pin connected to the pixels (10 uses SPI /dev/spidev0.0).
 LED_FREQ_HZ    = 800000  # LED signal frequency in hertz (usually 800khz)
@@ -86,79 +87,42 @@ def colorWipe(strip, color, wait_ms=50):
         strip.show()
         time.sleep(wait_ms/1000.0)
 
-def theaterChase(strip, color, wait_ms=50, iterations=10):
-    """Movie theater light style chaser animation."""
-    for j in range(iterations):
-        for q in range(3):
-            for i in range(0, strip.numPixels(), 3):
-                strip.setPixelColor(i+q, color)
-            strip.show()
-            time.sleep(wait_ms/1000.0)
-            for i in range(0, strip.numPixels(), 3):
-                strip.setPixelColor(i+q, 0)
-
-def wheel(pos):
-    # print "wheel %s\n" % (pos),
-    """Generate rainbow colors across 0-255 positions."""
-    if pos < 85:
-        return Color(pos * 3, 255 - pos * 3, 0)
-    elif pos < 170:
-        pos -= 85
-        return Color(255 - pos * 3, 0, pos * 3)
-    else:
-        pos -= 170
-        return Color(0, pos * 3, 255 - pos * 3)
-
-def rainbow(strip, wait_ms=20, iterations=1):
-    """Draw rainbow that fades across all pixels at once."""
-    for j in range(256*iterations):
-        for i in range(strip.numPixels()):
-            strip.setPixelColor(i, wheel((i+j) & 255))
-        strip.show()
-        time.sleep(wait_ms/1000.0)
-
-def rainbowCycle(strip, wait_ms=20, iterations=5):
-    """Draw rainbow that uniformly distributes itself across all pixels."""
-    for j in range(256*iterations):
-        for i in range(strip.numPixels()):
-            strip.setPixelColor(i, wheel((int(i * 256 / strip.numPixels()) + j) & 255))
-        strip.show()
-        time.sleep(wait_ms/1000.0)
-
-def theaterChaseRainbow(strip, wait_ms=50):
-    """Rainbow movie theater light style chaser animation."""
-    for j in range(256):
-        for q in range(3):
-            for i in range(0, strip.numPixels(), 3):
-                strip.setPixelColor(i+q, wheel((i+j) % 255))
-            strip.show()
-            time.sleep(wait_ms/1000.0)
-            for i in range(0, strip.numPixels(), 3):
-                strip.setPixelColor(i+q, 0)
-
-
 def followball(rho, theta, photo, strip):
     tdeg = theta * 57.2958
-    tdeg = tdeg%360
+    tdeg = (tdeg+LED_OFFSET)%360
     tdeg = abs(360-tdeg)
 
-    # print "rho %s degrees %s raw_theta %s photo %s\n" % (rho,tdeg,theta, photo),
+    brightness = int(96 * (photo/1024))
+
+    # color of non-pixels
+    color = Color(0,0,brightness)
 
     # single pixel matching the theta position
     pix = int( (tdeg * LED_COUNT) / 360 )
 
-    r = int((255*rho) / 3)
-    g = int((255*rho) / 3)
-    b = int((255*rho) / 3)
-    #
-    # # print ("new color %d %d %d  for pixel %d\n" % (r,g,b,pix))
-    for x in range(0, LED_COUNT):
-        if (x == pix):
-            brightness = 32
-            strip.setPixelColor(x, Color(brightness,brightness,brightness))
-        else:
-            strip.setPixelColor(x, 0)
+    # spread out the pixel color based on rho
+    max_spread = 90 # degress on either side of pixel to spread white
+    spread = max_spread - (max_spread * rho)
+    spread_l = tdeg - spread
+    spread_r = tdeg + spread
+
+    # print "degrees %s spread_l %s spread_r %s\n" % (tdeg, spread_l, spread_r),
     # sys.stdout.flush()
+
+    for x in range(0, LED_COUNT):
+        degrees = float(x * 360) / LED_COUNT
+        # fix wrapping degrees
+        if (spread_r >= 360 and degrees <= max_spread):
+            degrees += 360
+        elif (spread_l < 0 and degrees > 360 - max_spread):
+            degrees -= 360
+
+        if (degrees >= spread_l and degrees <= spread_r):
+            # ramp brightness
+            percent = (spread - abs(tdeg - degrees)) / spread
+            strip.setPixelColor(x, Color(0 + int(brightness * percent),0 + int(brightness * percent), brightness)) # based on assumption of Color(0,0,brightness)
+        else:
+            strip.setPixelColor(x, color) # default color
     strip.show()
 
 # Main program logic follows:
@@ -197,8 +161,8 @@ if __name__ == '__main__':
 
                     # timestamp = int(time.time()*1000.0)
                     # print "%s\n" % (timestamp)
-                    print "rho %s theta %s photo %s\n" % (rho, theta, photo),
-                    sys.stdout.flush()
+                    # print "rho %s theta %s photo %s\n" % (rho, theta, photo),
+                    # sys.stdout.flush()
 
                     followball(rho, theta, photo, strip)
             if bytes < 0:

@@ -53,7 +53,6 @@ var pauseRequest= false;
 
 var sp // serial port
 var sp_lcp // light controller program socket
-var cb_lcp_reconnect // if send errors, try sisbot reconnect
 
 var paused = true;
 //pars stored for pause/resume:
@@ -114,47 +113,47 @@ function checkPhoto() { //autodimming functionality:
 	if (plotRadius > 10) BRamp = 4; //temp fix for less light under 36 than 22
 
 	sp.write("I\r"); //SBB command to check digital inputs
-	
+
 	if (useFaultSensors)	sp.write("A2\r"); //SBB command to check analog inputs
 	else sp.write("A\r");
-	
+
 
  	if (autodim == "true") {	//need to check autodim toggle fn'ing
 		//console.log("photoAvgOld: " + photoAvgOld);
 	//filter spurious readings:
 		if (Math.abs(rawPhoto - photoAvgOld) / photoAvgOld > 0.5) {
-			if (bigChangeCounter < bigChangeIsReal) { 
+			if (bigChangeCounter < bigChangeIsReal) {
 				bigChangeCounter = bigChangeCounter + 1;
 				//console.log("bigChangeCtr = " + bigChangeCounter );
 				photoOut = photoAvgOld; // don't trust use prior avg
 				photoAvg = photoAvgOld;
 				trusted = false;
 			}
-			
+
 		}
 		if (trusted) { //trusted sensor reading
 			bigChangeCounter = 0;
-			photo = rawPhoto; 
-			
+			photo = rawPhoto;
+
 			if (photo > 1023) {photo = 1023;}
 			if (photo < photoMin) {photo = photoMin;} //photomin?
 			//console.log( "raw photo = " + photo)
 
-			
+
 			//logEvent(1, "photoSum = " + photoSum)
 
-			photoArray.shift(); //delete first val in array 
-			photoArray.push(photo); //add new val to end 
+			photoArray.shift(); //delete first val in array
+			photoArray.push(photo); //add new val to end
 			photoSum = photoArray.reduce(add, 0);
 			photoAvg = photoSum / photoArraySize;
-		
+
 			photoOut = photoAvg;
 			//console.log("photoAvg* = " + photoAvg);
 			//logEvent(1, "photoAvg = " + photoAvg);
 		}
-		
+
 		photoAvgOld = photoAvg;
-		
+
 		if (sliderBrightness > 0.5){
 			photoOut *= BRamp * (Math.pow(5,sliderBrightness * 2) - 4);
 		}
@@ -186,7 +185,7 @@ function checkPhoto() { //autodimming functionality:
 				//console.log("SE,0\r");
 			  	//logEvent(1, "SE,0");
 			}
-			
+
 			lastPhotoOut = photoOut;
 		}
 	}
@@ -289,17 +288,8 @@ function nextMove(mi) {
     correctGap();
   }
 
-  thNew = verts[mi+1].th; rNew= verts[mi+1].r;
-  
-  try {
-    inp = "b," + rNew + "," +thNew;
-    message = Buffer(inp);
-    sp_lcp.send(message, 0, message.length, '/tmp/python_unix_sockets_example');
-    logEvent(1,'LCP ' + inp);
-  } catch (err) {
-    logEvent(1,'Error writing to LCP socket ' + err.message);
-    this.cb_lcp_reconnect();
-  }
+  thNew = verts[mi+1].th;
+  rNew= verts[mi+1].r;
 
   moveThRad = thNew - thOld;
   THRAD = moveThRad;
@@ -469,10 +459,45 @@ function nextSeg(mi, miMax ,si, siMax, thStepsSeg, rStepsSeg,
   msec = Math.floor(msec);  if (msec < 1) msec = 1;
   cmd = "SM,"+msec+","+thStepsOut+","+rStepsOut+ "\r";
 
+  // Row
+  var newR = ((rAccum - thAccum * rthAsp * nestedAxisSign) * rDirSign/ rSPInch)/plotRadius;
+  // Theta
+  var thetaDistHome, modRads, rawRads, shortestRads;
+  rawRads = thAccum / thSPRad;
+  modRads = rawRads % (2 * Math.PI);
+  shortestRads = modRads*-1; //this is verified correct - but theta sign is wrong :(
+  if (modRads > Math.PI) shortestRads = 2 * Math.PI - modRads; //shortestRads = modRads - 2 * Math.PI;
+  if (modRads < -1 * Math.PI) shortestRads = -2 * Math.PI - modRads; //shortestRads = modRads + 2 * Math.PI;
+  var newTh = shortestRads;
+
   sp.write(cmd, function(err, res) {
     sp.drain(function(err, result) {
-      if (err) {logEvent(2, err, result);}
+      if (err) logEvent(2, err, result);
       else {
+        // send to socket
+        try {
+          var buf1 = Buffer.from('b', 0, 1);
+          var buf2 =  Buffer.alloc(4);
+          buf2.writeFloatBE(newR, 0);
+          var buf3 =  Buffer.alloc(4);
+          buf3.writeFloatBE(newTh, 0);
+          var buf4 =  Buffer.alloc(4);
+          buf4.writeFloatBE(lastPhotoOut, 0);
+          var totalLength = buf1.length + buf2.length + buf3.length + buf4.length;
+
+          // var d = new Date();
+          // var n = d.getMilliseconds();
+          // logEvent(1, "Millis", n);
+
+          // logEvent(1, "Values: ", newR, newTh, lastPhotoOut, "Buffer Length:", totalLength);
+          message = Buffer.concat([buf1, buf2, buf3, buf4], totalLength);
+
+          sp_lcp.send(message, 0, totalLength, '/tmp/sisyphus_sockets');
+          // logEvent(1,'LCP ' + inp);
+        } catch (err) {
+          // logEvent(2,'Error writing to LCP socket ' + err.message);
+        }
+
         //logEvent(1, cmd);
         si++;
         thAccum += thStepsOut;
@@ -711,114 +736,6 @@ function goRhoHome() {
 
 }
 
-
-// WAITING_RHO_LOST_SENSOR
-// RHO_HOME_MAX_SYNC
-// 
-
-
-//////      GO RHO HOME    ///////////////////////////////////
-// function centerRHO() {
-//   var rhoHomingStr, rhoHomeQueryStr = "PI," + homingRPin + "\r";
-//   //R home pin C6
-
-//   WAITING_RHO_LOST_SENSOR = true;
-
-
-//   if (RHO_HOME_COUNTER == RHO_HOME_MAX_SYNC) {
-//     logEvent(2, 'Failed to move off the Rho sensor!');
-//     //setStatus('waiting');
-//     rAccum = 0;
-//     WAITING_RHO_LOST_SENSOR = false; // stop trying to home
-//     setStatus('home_rho_failed');
-//     return;
-//   }
-
-//   sp.write(rhoHomeQueryStr);
-
-//   if (!RHO_HOMED) { //not home yet, move toward home:
-
-//     rhoHomingStr = "SM,"+ baseMS + "," + 0 + "," + -HOMERSTEPS * rDirSign + "\r";
-
-//     RHO_HOME_COUNTER++;
-//     // logEvent(1, RHO_HOME_COUNTER);
-
-//     sp.write(rhoHomingStr, function(err, res) {
-//       sp.drain(function(err, result) {
-//         if (err) {logEvent(2, err, result);}
-//         else {
-//           // logEvent(1, rhoHomingStr);
-//           WAITING_RHO_HOMED = true;
-
-//           goRhoHome();
-//         }
-//       });
-//     });
-
-//   }
-
-//   else { //Rho home sensor activated, confirm it:
-
-//     if (RETESTCOUNTER < RETESTNUM) {//not fully confirmed yet:
-//       RETESTCOUNTER++;
-//       // logEvent(1, "RETESTCOUNTER: " + RETESTCOUNTER);
-//       sp.write(rhoHomeQueryStr, function(err, res) {
-//         sp.drain(function(err, result) {
-//           if (err) {logEvent(2, err, result);}
-//           else {
-//             logEvent(1, rhoHomeQueryStr);
-//             WAITING_RHO_HOMED = true;
-//             //allow time for return of sensor state:
-//             setTimeout(goRhoHome, 15);
-
-//           }
-//         });
-//       });
-//     }
-
-//     else { //passed retesting so truly home:
-
-//       thAccum = 0;
-//       THETA_HOME_COUNTER = 0;
-//       // logEvent(1, 'THETA AT HOME!');
-//       RETESTCOUNTER = 0;
-//       WAITING_THETA_HOMED = false;
-
-//       rAccum = 0;
-//       RHO_HOME_COUNTER = 0;
-//       // logEvent(1, 'RHO AT HOME!');
-//       RETESTCOUNTER = 0;
-//       WAITING_RHO_HOMED = false;
-
-//       logEvent(1, 'homed');
-
-//       if (PLHOMED) { //homed from playlist
-//         setStatus('playing');
-//         if (PLAYTYPE == 'shuffle') { //relevant only for homes in shuffleplay
-//           plistLines.splice(PLINDEX,1); //pluck out plLines[PLINDEX]
-//           //logEvent(1, plistLines);
-//           REMAINING--;
-//         }
-//         nextPlaylistLine(PLINDEX, plLinesMax);
-//       }
-//       else { //homed manually
-//         setStatus('waiting');
-//       }
-
-//       photoTimeout = setTimeout(checkPhoto, photoMsec); //restart photosensing for autodim
-
-//       return;
-
-//     }
-
-//   }
-
-// }
-
-
-
-
-
 //////      JOG     ///////////////////////////////////
 function jog(axis, direction) {
   var jogThsteps = 0, jogRsteps = 0;
@@ -928,17 +845,17 @@ function parseReceivedSerialData(data) {
 				}
 			}
 		}
-		
+
 	//	if (parts[0] == 'A1'){} for future use when serial parser improved...
 	//for SBB 2.2.18+, avg'd Tma, Rma, photo, Vm and sampleCount
-		
+
 		if (parts[0] == 'A2'){ //for SBB 2.2.18+ only avg'd photo and sampleCount
-			if (data.length == 20){ //analog report came back complete 
+			if (data.length == 20){ //analog report came back complete
 				if (parts[1]) {
 					photoAccum = Number(parts[1].slice(3,11));
-					//console.log("photoAccum= " + photoAccum);	
+					//console.log("photoAccum= " + photoAccum);
 				}
-				if (parts[2]) { 
+				if (parts[2]) {
 					sampleCount = Number(parts[2].slice(3,8)) //count is always , 5 digits
 					//console.log( "sampleCount= "+ sampleCount);
 					//if (sampleCount>9999) resend "A" command...
@@ -955,7 +872,7 @@ function parseReceivedSerialData(data) {
 				}
 			}
 		}
-		
+
 		if (parts[0] == 'PI') {//EBB Pin Input return prefix
 
 
@@ -984,7 +901,7 @@ function parseReceivedSerialData(data) {
 				return;
 			}
 		}
-		
+
 		if (parts[0] == 'I') {//EBB read al1 inputs
 			if (data.length == 21){ //valid "I" return
 				//logEvent(1, data);
@@ -1249,6 +1166,19 @@ module.exports = {
   setBrightness: function(value) {
     sliderBrightness = value;
 		//logEvent(1, "sb: " + sliderBrightness);
+
+    if (autodim !== 'true') {
+      // convert to an integer from 0 - 1023, parabolic scale.
+      var pwm = Math.pow(2, value * 10) - 1;
+      pwm = Math.floor(pwm);
+
+      if (pwm == 0) {
+				sp.write("SE,0\r");
+      } else {
+				sp.write("SE,1," + pwm +"\r");
+        lastPhotoOut = pwm;
+      }
+  	}
   },
 
   // Set a speed scalar where 1 is normal, 2 is double
